@@ -14,7 +14,10 @@ class Ssvep(mne.Epochs):
                  fmin=0.1, fmax=50, tmin=None, tmax=None):
 
         self.info = deepcopy(epochs.info)
-        self.stimulation_frequency = list(stimulation_frequency)
+        if type(stimulation_frequency) is int:
+            self.stimulation_frequency = [stimulation_frequency]
+        else:
+            self.stimulation_frequency = list(stimulation_frequency)
         self.noisebandwidth = noisebandwidth
         self.psd = psd
         self.freqs = freqs
@@ -66,7 +69,7 @@ class Ssvep(mne.Epochs):
 
         # Work out the SNRs for various freqs
         self.stimulation_snr = [self._compute_snr(f)
-                                for f in stimulation_frequency]
+                                for f in self.stimulation_frequency]
         self.harmonic_snr = [self._compute_snr(freq)
                              for freq in self.harmonics]
         self.subharmonic_snr = [self._compute_snr(freq)
@@ -99,9 +102,11 @@ class Ssvep(mne.Epochs):
         Helper function to compute the harmonics from a list, while making sure
         they're in the frequency range
         """
-        return [self.stimulation_frequency * x for x in multipliers
-                if (((self.stimulation_frequency / x) > self.freqs.min()) and
-                    ((self.stimulation_frequency / x) < self.freqs.max()))]
+        return [stimfreq * x
+                for stimfreq in self.stimulation_frequency
+                for x in multipliers
+                if (((stimfreq / x) > self.freqs.min()) and
+                    ((stimfreq / x) < self.freqs.max()))]
 
     def plot_psd(self, collapse_epochs=True, collapse_electrodes=False,
                  **kwargs):
