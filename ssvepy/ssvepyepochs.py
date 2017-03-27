@@ -14,10 +14,11 @@ class Ssvep(mne.Epochs):
                  fmin=0.1, fmax=50, tmin=None, tmax=None):
 
         self.info = deepcopy(epochs.info)
-        if type(stimulation_frequency) is int:
-            self.stimulation_frequency = [stimulation_frequency]
-        else:
-            self.stimulation_frequency = list(stimulation_frequency)
+        try:
+            self.stimulation_frequency = [float(f)
+                                          for f in stimulation_frequency]
+        except TypeError:
+            self.stimulation_frequency = [float(stimulation_frequency)]
         self.noisebandwidth = noisebandwidth
         self.psd = psd
         self.freqs = freqs
@@ -38,7 +39,7 @@ class Ssvep(mne.Epochs):
         # If needed, work out the harmonic frequencies
         if compute_harmonics and type(compute_harmonics) is bool:
             self.harmonics = self._compute_harmonics(
-                [harmonic for harmonic in range(1, 5)])
+                [harmonic for harmonic in range(2, 5)])
         elif compute_harmonics and type(compute_harmonics) is int:
             self.harmonics = self._compute_harmonics([compute_harmonics])
         elif compute_harmonics:
@@ -49,7 +50,7 @@ class Ssvep(mne.Epochs):
         # same for subharmonics
         if compute_subharmonics and type(compute_subharmonics) is bool:
             self.subharmonics = self._compute_harmonics(
-                [1 / (harmonic) for harmonic in range(1, 5)])
+                [1 / (harmonic) for harmonic in range(2, 5)])
         elif compute_subharmonics and type(compute_subharmonics) is int:
             self.subharmonics = self._compute_harmonics(
                 [1 / compute_subharmonics])
@@ -105,8 +106,8 @@ class Ssvep(mne.Epochs):
         return [stimfreq * x
                 for stimfreq in self.stimulation_frequency
                 for x in multipliers
-                if (((stimfreq / x) > self.freqs.min()) and
-                    ((stimfreq / x) < self.freqs.max()))]
+                if (((stimfreq * x) > self.freqs.min()) and
+                    ((stimfreq * x) < self.freqs.max()))]
 
     def plot_psd(self, collapse_epochs=True, collapse_electrodes=False,
                  **kwargs):
@@ -171,10 +172,10 @@ class Ssvep(mne.Epochs):
             plt.plot(self.freqs, ydata, color='blue', alpha=0.3)
             if ydata.ndim > 1:
                 plt.plot(self.freqs, ydata.mean(axis=1), color='red')
-            for xval in [self.stimulation_frequency] + self.harmonics + \
+            for xval in self.stimulation_frequency + self.harmonics + \
                     self.subharmonics:
                 plt.axvline(xval, linestyle='--', color='gray')
-            plt.xticks([self.stimulation_frequency] +
+            plt.xticks(self.stimulation_frequency +
                        self.harmonics + self.subharmonics)
             plt.title('Average spectrum of all epochs')
         elif ydata.ndim > 2:
@@ -187,10 +188,10 @@ class Ssvep(mne.Epochs):
                 plt.plot(self.freqs, ydata, color='blue', alpha=0.3)
                 if ydata.ndim > 1:
                     plt.plot(self.freqs, ydata.mean(axis=1), color='red')
-                for xval in [self.stimulation_frequency] + self.harmonics + \
+                for xval in self.stimulation_frequency + self.harmonics + \
                         self.subharmonics:
                     plt.axvline(xval, linestyle='--', color='gray')
-                plt.xticks([self.stimulation_frequency] +
+                plt.xticks(self.stimulation_frequency +
                            self.harmonics + self.subharmonics)
                 plt.title('Spectrum of epoch {n}'.format(n=idx + 1))
 
@@ -207,13 +208,3 @@ class Ssvep(mne.Epochs):
                                             fmin=self.freqs.min(),
                                             fmax=self.freqs.max()))
         return outstring
-
-    # def plot_snr(self):
-    #     plt.figure(figsize=(20, 8))
-    #     plt.plot(self.freqs, self.psd.mean(axis=0).T, color='blue', alpha=0.3)
-    #     plt.plot(self.freqs, )
-    #     for xval in self.stimulation_frequency + self.harmonics +\
-    #             self.subharmonics:
-    #         plt.axvline(xval, linestyle='--', color='gray')
-    #     plt.xticks(baselinefreqs)
-    #     plt.show()
