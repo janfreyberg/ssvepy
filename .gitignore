@@ -24,6 +24,9 @@ var/
 .installed.cfg
 *.egg
 
+# Notebook
+.ipnyb_checkpoints
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -56,3 +59,5 @@ docs/_build/
 
 # PyBuilder
 target/
+
+\.ipynb_checkpoints/
