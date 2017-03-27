@@ -14,7 +14,7 @@ class Ssvep(mne.Epochs):
                  fmin=0.1, fmax=50, tmin=None, tmax=None):
 
         self.info = deepcopy(epochs.info)
-        self.stimulation_frequency = stimulation_frequency
+        self.stimulation_frequency = list(stimulation_frequency)
         self.noisebandwidth = noisebandwidth
         self.psd = psd
         self.freqs = freqs
@@ -56,23 +56,21 @@ class Ssvep(mne.Epochs):
         else:
             self.subharmonics = []
 
-        # Work out the SNRs for the stimulation frequencies
-        try:
-            # try looping
-            self.stimulation_snr = [self._compute_snr(freq)
-                                    for freq in stimulation_frequency]
-        except TypeError:
-            # try just one frequency
-            self.stimulation_snr = self._compute_snr(stimulation_frequency)
+        # Work out the amplitude at various frequencies
+        self.stimulation_pow = [self._get_amp(f)
+                                for f in self.stimulation_frequency]
+        self.harmonic_pow = [self._get_amp(f)
+                             for f in self.harmonics]
+        self.subharmonic_pow = [self._get_amp(f)
+                                for f in self.subharmonics]
 
-        # Work out the SNR for harmonics
-        self.harmonic_snr = ([self._compute_snr(freq)
-                              for freq in self.harmonics] if self.harmonics
-                             else None)
-        self.subharmonic_snr = ([self._compute_snr(freq)
-                                 for freq in self.subharmonics]
-                                if self.subharmonics
-                                else None)
+        # Work out the SNRs for various freqs
+        self.stimulation_snr = [self._compute_snr(f)
+                                for f in stimulation_frequency]
+        self.harmonic_snr = [self._compute_snr(freq)
+                             for freq in self.harmonics]
+        self.subharmonic_snr = [self._compute_snr(freq)
+                                for freq in self.subharmonics]
 
     def _compute_snr(self, freq):
         """
@@ -85,6 +83,16 @@ class Ssvep(mne.Epochs):
                      ~stimband)
         return (self.psd[..., stimband].mean(axis=-1) /
                 self.psd[..., noiseband].mean(axis=-1))
+
+    def _get_amp(self, freq):
+        """
+        Helper function to get the freq-smoothed amplitude of a frequency
+        """
+        return self.psd[
+            ...,
+            ((self.freqs <= freq + self.frequency_resolution) &
+             (self.freqs >= freq - self.frequency_resolution))
+        ].mean(axis=-1)
 
     def _compute_harmonics(self, multipliers):
         """
