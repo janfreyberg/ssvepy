@@ -21,4 +21,7 @@ setup(
     author_email='jan.freyberg@gmail.com',
     packages=['ssvepy'],
     install_requires=['mne', 'numpy', 'matplotlib'],
+    package_data={
+        '': ['exampledata/*fif']
+    },
 )
