@@ -12,6 +12,9 @@ As always with pip packages, you can install a "development" version of this pac
 
 You should load, preprocess and epoch your data using [MNE](https://github.com/mne-tools/mne-python).
 
+Take a look at a notebook that sets up an SSVEP analysis structure with the example data in this package:
+https://github.com/janfreyberg/ssvepy/blob/master/example.ipynb
+
 Once you have a data structure of the class `Epoch`, you can use `ssvepy.Ssvep(epoch_data, stimulation_frequency)`, where `stimulation_frequency` is the frequency (or list of frequencies) at which you stimulated your participants.
 
 Other input parameters and their defaults are:
