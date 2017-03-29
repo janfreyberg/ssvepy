@@ -34,12 +34,12 @@ Other input parameters and their defaults are:
 
 The resulting data has the following attributes:
 
-- `stimulation_frequency`: list of frequencies, from your input
-- `harmonics`, `subharmonics`, `intermodulations`: non-linear combination of your input stimulus frequencies.
+- `stimulation`: a data structure with the following attributes:
+  - `stimulation.frequencies`, `stimulation.power`, `stimulation.snr`
+- `harmonics`, `subharmonics`, `intermodulations`: non-linear combination of your input stimulus frequencies, all with the attributes:
+  - `_.frequencies`, `_.power`, `_.snr`, `_.order`
 - `psd`: the Power-spectrum
 - `freqs`: the frequencies at which the psd was evaluated
-- `stimulation_snr`: The signal-to-noise-ratio at your stimulation frequencies
-  - also `harmonic_snr`, `subharmonic_snr`, `intermodulation_snr`
 
 And the following methods:
 
