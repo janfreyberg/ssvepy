@@ -45,6 +45,8 @@ And the following methods:
 
 - `plot_psd()`: Plot the power spectrum
 - `plot_snr()`: Plot the SNR spectrum
-- `save(filename)`: Saves an `hdf5` file that can be loaded with `ssvepy.load_ssvep(filename)`
+- `save(filename)`: Saves an `hdf5` file that can be loaded with `ssvepy.load_ssvep(filename)` <sup>1</sup>
 
 More to come.
+
+<sup>1</sup>: This package currently uses hierarchical data files (hdf5) because it seems to lend itself to the different data stored in ssvep classes, but I know it's less than ideal to have different data structures from MNE. I'm still thinking about improvements.
