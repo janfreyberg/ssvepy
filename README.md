@@ -45,5 +45,6 @@ And the following methods:
 
 - `plot_psd()`: Plot the power spectrum
 - `plot_snr()`: Plot the SNR spectrum
+- `save(filename)`: Saves an `hdf5` file that can be loaded with `ssvepy.load_ssvep(filename)`
 
 More to come.
