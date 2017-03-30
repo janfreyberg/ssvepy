@@ -35,8 +35,6 @@ class Ssvep(mne.Epochs):
 
         # If no power-spectrum was provided, we need to work it out
         if self.psd is None:
-            # if the user provided list of freqs(?), use this input a bit
-
             # Use MNE here. TODO: offer different methods of FFT eval
             self.psd, self.freqs = mne.time_frequency.psd_multitaper(
                 epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax)
@@ -240,7 +238,7 @@ class Ssvep(mne.Epochs):
         outstring = ('ssvepy data structure based on epoched data.\n'
                      'The stimulation frequency(s) is {stimfreq}.\n'
                      'There are {nepoch} epochs.\n The power spectrum was '
-                     'evaluated over {nfreqs} frequencies ({fmin} Hz -'
+                     'evaluated over {nfreqs} frequencies ({fmin} Hz - '
                      '{fmax} Hz).\n'.format(
                          stimfreq=self.stimulation.frequencies,
                          nepoch=self.psd.shape[0],
