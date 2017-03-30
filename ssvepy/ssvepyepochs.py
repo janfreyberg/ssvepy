@@ -4,6 +4,8 @@ from copy import deepcopy
 import collections
 import matplotlib.pyplot as plt
 from . import frequencymaths
+import h5py
+import pickle
 
 EvokedFrequency = collections.namedtuple('EvokedFrequency',
                                          ['frequencies', 'orders',
@@ -234,6 +236,35 @@ class Ssvep(mne.Epochs):
 
         plt.show()
 
+    def save(self, filename):
+        if filename[-5:] != '.hdf5':
+            filename = filename + '.hdf5'
+        f = h5py.File(filename, 'w')  # open a file
+        # First the necessary data:
+        psd = f.create_dataset('psd', data=self.psd)
+        freqs = f.create_dataset('freqs', data=self.freqs)
+        # whack in the info structure:
+        info = f.create_group('info')
+        info.attrs['infostring'] = np.void(pickle.dumps(self.info))
+        # Store the various evoked frequency structures:
+        for name, tup in [('stimulation', self.stimulation),
+                          ('harmonic', self.harmonic),
+                          ('subharmonic', self.subharmonic),
+                          ('intermodulation', self.intermodulation)]:
+            g = f.create_group(name)
+            for key, value in tup._asdict().items():
+                if value is not None:
+                    g.create_dataset(key, data=value)
+        # Store the frequency resolution
+        psdinfo = f.create_group('psdinfo')
+        psdinfo.attrs['frequency_resolution'] = self.frequency_resolution
+        psdinfo.attrs['fmin'] = self.fmin
+        psdinfo.attrs['fmax'] = self.fmax
+        psdinfo.attrs['noisebandwidth'] = self.noisebandwidth
+
+        # Finally, close the file:
+        f.close()
+
     def __repr__(self):
         outstring = ('ssvepy data structure based on epoched data.\n'
                      'The stimulation frequency(s) is {stimfreq}.\n'
@@ -247,3 +278,41 @@ class Ssvep(mne.Epochs):
                          fmax=self.freqs.max())
                      )
         return outstring
+
+
+def load_ssvep(filename):
+    # define namedtuple as a go-between
+    DummyEpoch = collections.namedtuple('DummyEpoch', field_names=['info'])
+
+    if filename[-5:] != '.hdf5':
+        filename = filename + '.hdf5'
+
+    f = h5py.File(filename, 'r')  # open file for reading
+
+    ssvep = ssvepy.Ssvep(
+        DummyEpoch(info=pickle.loads(f['info'].attrs['infostring'].tostring())),
+        f['stimulation']['frequencies'].value,
+        noisebandwidth=f['psdinfo'].attrs['noisebandwidth'],
+        compute_harmonics=False,
+        compute_subharmonics=False,
+        compute_intermodulation=False,
+        psd=f['psd'].value,
+        freqs=f['freqs'].value,
+        fmin=f['psdinfo'].attrs['fmin'],
+        fmax=f['psdinfo'].attrs['fmax']
+    )
+
+    # Load the evoked frequency structures and try to use them:
+    for ftype in ['stimulation', 'harmonic', 'subharmonic', 'intermodulation']:
+        try:
+            ssvep.__setattr__(
+                ftype,
+                EvokedFrequency(**{key: value.value
+                                   for key, value in f[ftype].items()})
+            )
+        except:
+            pass
+    # close the file:
+    f.close()
+    # and return the loaded data:
+    return ssvep
