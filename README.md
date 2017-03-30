@@ -49,4 +49,6 @@ And the following methods:
 
 More to come.
 
+---
+
 <sup>1</sup>: This package currently uses hierarchical data files (hdf5) because it seems to lend itself to the different data stored in ssvep classes, but I know it's less than ideal to have different data structures from MNE. I'm still thinking about improvements.
