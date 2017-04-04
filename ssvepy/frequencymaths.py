@@ -45,7 +45,7 @@ def compute_harmonics(frequencies, fmin=0.1, fmax=50, orders=range(2, 5)):
         freqs = [[n * f for n in orders
                   if n * f <= fmax and n * f >= fmin]
                  for f in frequencies]
-    except TypeError:
+    except:
         freqs = [[n * f for n in orders
                   if n * f <= fmax and n * f >= fmin]
                  for f in [frequencies]]

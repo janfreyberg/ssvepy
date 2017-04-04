@@ -1,2 +1,2 @@
-from .ssvepyepochs import Ssvep
+from .ssvepyepochs import Ssvep, load_ssvep
 from . import frequencymaths
