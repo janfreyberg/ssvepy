@@ -192,7 +192,7 @@ class Ssvep(mne.Epochs):
                                            collapse_electrodes][x]]))
         self._plot_spectrum(ydata, **kwargs)
 
-    def _plot_spectrum(self, ydata, figsize=(20, 8)):
+    def _plot_spectrum(self, ydata, figsize=(15, 7), show=True):
         """
         Helper function to plot different spectra
         """
@@ -234,7 +234,139 @@ class Ssvep(mne.Epochs):
                 plt.xticks(xmarks)
                 plt.title('Spectrum of epoch {n}'.format(n=idx + 1))
 
+        if show:
+            plt.show()
+
+    def topoplot_psd(self, collapse_epochs=True,
+                     flims=None, **kwargs):
+
+        # Find out over which range(s) to collapse:
+        fmins, fmaxs = self._get_flims(flims)
+
+        # Get the actual data, collapse across frequency band
+        if len(fmins.flatten()) > 1:
+            topodata = [self.psd[...,
+                                 (self.freqs > fmin) &
+                                 (self.freqs < fmax)].mean(axis=-1)
+                        for fmin, fmax in
+                        zip(fmins.flatten(), fmaxs.flatten())]
+            annot = [(str(fmin) + ' - ' + str(fmax) + ' Hz')
+                     for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())]
+        else:
+            topodata = self.psd[...,
+                                (self.freqs > fmins) &
+                                (self.freqs < fmaxs)].mean(axis=-1)
+            # annotation
+            annot = (str(fmins[0]) + ' - ' + str(fmaxs[0]) + ' Hz')
+        # also collapse epochs
+        if collapse_epochs:
+            topodata = topodata.mean(axis=0)
+        # Call the actual plotting function
+        self._plot_topo(topodata, annot, **kwargs)
+        plt.suptitle('Power')
         plt.show()
+
+    def topoplot_snr(self, collapse_epochs=True,
+                     flims=None, **kwargs):
+
+        # Find out over which range(s) to collapse:
+        fmins, fmaxs = self._get_flims(flims)
+
+        if len(fmins.flatten()) > 1:
+            topodata = [np.stack([self._get_snr(freq)
+                                  for freq in self.freqs
+                                  if freq > fmin and freq < fmax],
+                                 axis=-1).mean(-1)
+                        for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())]
+            annot = [(str(fmin) + ' - ' + str(fmax) + ' Hz')
+                     for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())]
+            if collapse_epochs:
+                topodata = [t.mean(axis=0) for t in topodata]
+        else:
+            topodata = np.stack([self._get_snr(freq)
+                                 for freq in self.freqs
+                                 if freq > fmins and freq < fmaxs],
+                                axis=-1).mean(-1)
+            # annotation
+            annot = (str(fmins[0]) + ' - ' + str(fmaxs[0]) + ' Hz')
+            if collapse_epochs:
+                topodata = topodata.mean(axis=0)
+
+        self._plot_topo(topodata, annot, **kwargs)
+        plt.gca()
+        plt.suptitle('SNR', size='xx-large')
+        # plt.figtext(0.05, 0.05, annot,
+        #             size='small')
+        plt.show()
+
+    def _get_flims(self, flims):
+        """
+        Helper function that turns strings or lists into helpful
+        """
+        if flims is not None:
+            if type(flims) is str:
+                fmins = self.__getattribute__(flims).frequencies - 0.1
+                fmaxs = self.__getattribute__(flims).frequencies + 0.1
+            elif type(flims) is int or type(flims) is float:
+                fmins = np.array([flims - 0.1])
+                fmaxs = np.array([flims + 0.1])
+            else:
+                try:
+                    if len(flims[0]) > 1:
+                        fmins = [flim[0] for flim in flims]
+                        fmaxs = [flim[1] for flim in flims]
+                except TypeError:
+                    fmins = flims[0]
+                    fmaxs = flims[1]
+        else:
+            fmins = self.stimulation.frequencies - 0.1
+            fmaxs = self.stimulation.frequencies + 0.1
+
+        return fmins, fmaxs
+
+    def _plot_topo(self, topodata, annotation=None,
+                   figsize=(5, 5), cmap='Blues',
+                   channels=None, vmin=None, vmax=None, ax=None):
+        """
+        Helper function to plot scalp distribution
+        """
+        # Get the montage
+        pos = mne.channels.layout._auto_topomap_coords(
+            self.info, range(len(self.ch_names))
+        )
+        if type(topodata) is not list:
+            topodata = [topodata]
+        if type(annotation) is not list:
+            annotation = [annotation]
+        # get the common vmin and vmax values across all our data
+        if vmin is None:
+            vmin = np.min([t.min() for t in topodata])
+        if vmax is None:
+            vmax = np.max([t.max() for t in topodata])
+        # Make a Figure
+        fig, axes = plt.subplots(nrows=int(np.ceil(np.sqrt(len(topodata)))),
+                                 ncols=int(np.ceil(len(topodata) /
+                                                   np.ceil(np.sqrt(len(topodata))))),
+                                 figsize=figsize)
+        for idx, t in enumerate(topodata):
+            if type(axes) is np.ndarray:
+                ax = axes.flatten()[idx]
+            else:
+                ax = axes
+            im, _ = mne.viz.plot_topomap(t.flatten(), pos, cmap=cmap,
+                                         vmin=vmin, vmax=vmax,
+                                         show=False, axes=ax)
+            ax.set_title(annotation[idx])
+        # add a colorbar:
+        if type(axes) is np.ndarray:
+            fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.7)
+        else:
+            fig.colorbar(im, ax=axes, shrink=0.7)
+        # fig = plt.gcf()
+        # fig.subplots_adjust(right=0.8)
+        # cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        # fig.colorbar(im, cax=cbar_ax)
+        return fig
 
     def save(self, filename):
         if filename[-5:] != '.hdf5':
@@ -289,7 +421,7 @@ def load_ssvep(filename):
 
     f = h5py.File(filename, 'r')  # open file for reading
 
-    ssvep = ssvepy.Ssvep(
+    ssvep = Ssvep(
         DummyEpoch(info=pickle.loads(f['info'].attrs['infostring'].tostring())),
         f['stimulation']['frequencies'].value,
         noisebandwidth=f['psdinfo'].attrs['noisebandwidth'],
