@@ -6,10 +6,15 @@ import matplotlib.pyplot as plt
 from . import frequencymaths
 import h5py
 import pickle
+from scipy.signal import lfilter
+from scipy.ndimage.filters import gaussian_filter
 
 EvokedFrequency = collections.namedtuple('EvokedFrequency',
-                                         ['frequencies', 'orders',
-                                          'power', 'snr'])
+                                         ['frequencies',
+                                          'orders',
+                                          'power',
+                                          'snr',
+                                          'tfr'])
 
 
 class Ssvep(mne.Epochs):
@@ -19,7 +24,8 @@ class Ssvep(mne.Epochs):
                  compute_harmonics=True, compute_subharmonics=False,
                  compute_intermodulation=True,
                  psd=None, freqs=None,
-                 fmin=0.1, fmax=50, tmin=None, tmax=None):
+                 fmin=0.1, fmax=50, tmin=None, tmax=None,
+                 compute_tfr=False, tfr_method='rls', tfr_time_window=0.9):
 
         self.info = deepcopy(epochs.info)
 
@@ -42,6 +48,7 @@ class Ssvep(mne.Epochs):
                 epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax)
 
         self.frequency_resolution = self.freqs[1] - self.freqs[0]
+
         if type(stimulation_frequency) is not np.ndarray:
             try:
                 stimulation_frequency = np.array(
@@ -54,25 +61,35 @@ class Ssvep(mne.Epochs):
             frequencies=stimulation_frequency,
             orders=np.ones(stimulation_frequency.shape, dtype=float),
             power=self._get_amp(stimulation_frequency),
-            snr=self._get_snr(stimulation_frequency)
+            snr=self._get_snr(stimulation_frequency),
+            tfr=(self._compute_tfr(epochs, stimulation_frequency,
+                                   window_width=tfr_time_window)
+                 if compute_tfr else None)
         )
         harmfreqs, harmorder = self._compute_harmonics(compute_harmonics)
         self.harmonic = EvokedFrequency(
             frequencies=harmfreqs,
             orders=harmorder,
             power=self._get_amp(harmfreqs),
-            snr=self._get_snr(harmfreqs)
+            snr=self._get_snr(harmfreqs),
+            tfr=(self._compute_tfr(epochs, harmfreqs,
+                                   window_width=tfr_time_window)
+                 if compute_tfr else None)
+
         ) if compute_harmonics else EvokedFrequency(
-            frequencies=None, orders=None, power=None, snr=None
+            frequencies=None, orders=None, power=None, snr=None, tfr=None
         )
         subfreqs, suborder = self._compute_subharmonics(compute_subharmonics)
         self.subharmonic = EvokedFrequency(
             frequencies=subfreqs,
             orders=suborder,
             power=self._get_amp(subfreqs),
-            snr=self._get_snr(subfreqs)
+            snr=self._get_snr(subfreqs),
+            tfr=(self._compute_tfr(epochs, subfreqs,
+                                   window_width=tfr_time_window)
+                 if compute_tfr else None)
         ) if compute_subharmonics else EvokedFrequency(
-            frequencies=None, orders=None, power=None, snr=None
+            frequencies=None, orders=None, power=None, snr=None, tfr=None
         )
         if compute_intermodulation and stimulation_frequency.size > 1:
             interfreqs, interorder = self._compute_intermodulations(
@@ -81,11 +98,14 @@ class Ssvep(mne.Epochs):
                 frequencies=interfreqs,
                 orders=interorder,
                 power=self._get_amp(interfreqs),
-                snr=self._get_snr(interfreqs)
+                snr=self._get_snr(interfreqs),
+                tfr=(self._compute_tfr(epochs, interfreqs,
+                                       window_width=tfr_time_window)
+                     if compute_tfr else None)
             )
         else:
             self.intermodulation = EvokedFrequency(
-                frequencies=None, orders=None, power=None, snr=None
+                frequencies=None, orders=None, power=None, snr=None, tfr=None
             )
 
     def _get_snr(self, freqs):
@@ -117,6 +137,63 @@ class Ssvep(mne.Epochs):
             axis=-1
         )
 
+    def _compute_tfr(self, epoch, freq, tfr_method='rls', window_width=1.2,
+                     filter_lambda=1.0):
+        """
+        Work out the time-frequency composition of different frequencies.
+        """
+
+        data = epoch.get_data()
+
+        if type(freq) is not np.ndarray:
+            raise TypeError('Frequencies need to provided in a numpy array.')
+
+        samplefreq = epoch.info['sfreq']
+        n_window = int(samplefreq * window_width)
+        if filter_lambda == 1:
+            lambdafilter = (np.ones(n_window) /
+                            (n_window / 2))
+        else:
+            lambdafilter = np.power(filter_lambda,
+                                    np.arange(n_window))
+
+        t = np.arange(data.shape[-1]) / samplefreq
+
+        # create a data structure that matches MNE standard TFR shape
+        tfr_data = np.zeros((data.shape[0], data.shape[1],
+                             freq.size, data.shape[2]))
+
+        if tfr_method == 'rls':
+            # this implementation follows Sucharit Katyal's code
+            for fi, f in enumerate(freq.flatten()):
+                s = -np.sin(2 * np.pi * f * t)
+                c = np.cos(2 * np.pi * f * t)
+                # Create the sin and cosine
+                for trial in range(data.shape[0]):
+                    for electrode in range(data.shape[1]):
+                        y = data[trial, electrode, :]
+                        # obtain cosine and since components
+                        hc = lfilter(lambdafilter, 1, y * c)
+                        hs = lfilter(lambdafilter, 1, y * s)
+                        # lambda correction, if necessary
+                        if filter_lambda < 1:
+                            hc = hc / lfilter(lambdafilter, 1, c**2)
+                            hs = hs / lfilter(lambdafilter, 1, s**2)
+                        # combine the data to get envelope
+                        a = np.abs(hc + 1j * hs)
+                        # shift left, pad zero
+                        a = np.roll(a, -n_window // 2)
+                        a[(-n_window // 2):-1] = np.nan
+                        # smooth with gaussian
+                        a[0:(-n_window // 2)] = gaussian_filter(
+                            a[0:(-n_window // 2)], n_window // 10
+                        )
+                        # set in tfr_data
+                        tfr_data[trial, electrode, fi, :] = a
+        else:
+            raise NotImplementedError('Only RLS is available so far.')
+        return tfr_data
+
     def _compute_harmonics(self, orders):
         """
         Wrapper function around the compute_harmonics function in frequencymaths
@@ -145,6 +222,51 @@ class Ssvep(mne.Epochs):
             self.stimulation.frequencies,
             fmin=self.fmin, fmax=self.fmax, orders=orders
         )
+
+    def plot_tfr(self, frequency=None, collapse_epochs=True,
+                 collapse_electrodes=False,
+                 figsize=(7, 5)):
+
+        if frequency is None or frequency == 'stimulation':
+            y = self.stimulation.tfr
+            z = self.stimulation.frequencies
+        elif type(frequency) is str:
+            y = self.__getattribute__(frequency).tfr
+            z = self.__getattribute__(frequency).frequencies
+
+        x = np.arange(y.shape[-1]) / self.info['sfreq']
+
+        collapse_axes = tuple(
+            [ax for ax, b in enumerate([collapse_epochs,
+                                        collapse_electrodes])
+             if b]
+        )
+        if len(collapse_axes) > 0:
+            y = y.mean(axis=collapse_axes)
+        # Make time the first dimension
+        y = np.rollaxis(y, -1)
+        # Make a figure (-1 is now freq. dimension)
+        nplots = y.shape[-1]
+        nrows = int(np.ceil(np.sqrt(nplots)))
+        ncols = int(np.ceil(nplots / nrows))
+        fig, axes = plt.subplots(nrows=nrows,
+                                 ncols=ncols,
+                                 figsize=figsize)
+        # y = np.squeeze(y)
+        for idx in range(nplots):
+            # Choose axes to plot in
+            ax = axes.flatten()[idx] if nplots > 1 else axes
+            # Plot the individual lines
+            ax.plot(x, y[..., idx], color='blue', alpha=0.1)
+            # Plot the mean of the data
+            if y[..., idx].size > y.shape[0]:
+                ax.plot(x, y[..., idx].mean(axis=-1))
+            ax.set_xlabel('Time (s)')
+            ax.set_ylabel('Amplitude')
+            ax.set_title(str(z.flatten()[idx])
+                         + ' Hz')
+
+        plt.show()
 
     def plot_psd(self, collapse_epochs=True, collapse_electrodes=False,
                  **kwargs):
@@ -340,20 +462,23 @@ class Ssvep(mne.Epochs):
             annotation = [annotation]
         # get the common vmin and vmax values across all our data
         if vmin is None:
-            vmin = np.min([t.min() for t in topodata])
+            vmin = np.min([np.nanmin(t) for t in topodata])
         if vmax is None:
-            vmax = np.max([t.max() for t in topodata])
+            vmax = np.max([np.nanmax(t) for t in topodata])
         # Make a Figure
         fig, axes = plt.subplots(nrows=int(np.ceil(np.sqrt(len(topodata)))),
                                  ncols=int(np.ceil(len(topodata) /
                                                    np.ceil(np.sqrt(len(topodata))))),
                                  figsize=figsize)
         for idx, t in enumerate(topodata):
-            if type(axes) is np.ndarray:
-                ax = axes.flatten()[idx]
-            else:
-                ax = axes
-            im, _ = mne.viz.plot_topomap(t.flatten(), pos, cmap=cmap,
+            t = t.flatten()
+            # Check for infs or nans and remove them
+            bads = np.isnan(t) | np.isinf(t)
+            t = t[~bads]
+            pos = pos[~bads, :]
+            # pick correct axes
+            ax = axes.flatten()[idx] if type(axes) is np.ndarray else axes
+            im, _ = mne.viz.plot_topomap(t, pos, cmap=cmap,
                                          vmin=vmin, vmax=vmax,
                                          show=False, axes=ax)
             ax.set_title(annotation[idx])
