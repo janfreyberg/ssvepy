@@ -26,6 +26,7 @@ var/
 
 # Notebook
 .ipnyb_checkpoints
+\.ipynb_checkpoints/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -60,4 +61,6 @@ docs/_build/
 # PyBuilder
 target/
 
-\.ipynb_checkpoints/
+# Files
+*.DS_Store
+**/.DS_Store
