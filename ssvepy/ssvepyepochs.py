@@ -8,6 +8,8 @@ import h5py
 import pickle
 from scipy.signal import lfilter
 from scipy.ndimage.filters import gaussian_filter
+import sklearn.linear_model
+import inspect
 
 EvokedFrequency = collections.namedtuple('EvokedFrequency',
                                          ['frequencies',
@@ -21,8 +23,9 @@ class Ssvep(mne.Epochs):
 
     def __init__(self, epochs, stimulation_frequency,
                  noisebandwidth=1.0,
-                 compute_harmonics=True, compute_subharmonics=False,
-                 compute_intermodulation=True,
+                 compute_harmonics=range(2, 5),
+                 compute_subharmonics=range(2, 5),
+                 compute_intermodulation=range(2, 5),
                  psd=None, freqs=None,
                  fmin=0.1, fmax=50, tmin=None, tmax=None,
                  compute_tfr=False, tfr_method='rls', tfr_time_window=0.9):
@@ -55,7 +58,7 @@ class Ssvep(mne.Epochs):
                     [x for x in stimulation_frequency], dtype=float)
             except:
                 stimulation_frequency = np.array(
-                    [stimulation_frequency], dtype=float)
+                    stimulation_frequency, dtype=float)
         # Use a custom named tuple for the frequency-related data
         self.stimulation = EvokedFrequency(
             frequencies=stimulation_frequency,
@@ -66,6 +69,7 @@ class Ssvep(mne.Epochs):
                                    window_width=tfr_time_window)
                  if compute_tfr else None)
         )
+
         harmfreqs, harmorder = self._compute_harmonics(compute_harmonics)
         self.harmonic = EvokedFrequency(
             frequencies=harmfreqs,
@@ -107,6 +111,8 @@ class Ssvep(mne.Epochs):
             self.intermodulation = EvokedFrequency(
                 frequencies=None, orders=None, power=None, snr=None, tfr=None
             )
+
+    # Helper functions to get specific frequencies:
 
     def _get_snr(self, freqs):
         """
@@ -194,6 +200,8 @@ class Ssvep(mne.Epochs):
             raise NotImplementedError('Only RLS is available so far.')
         return tfr_data
 
+    # Helper functions to compute non-linear frequency combos:
+
     def _compute_harmonics(self, orders):
         """
         Wrapper function around the compute_harmonics function in frequencymaths
@@ -222,6 +230,81 @@ class Ssvep(mne.Epochs):
             self.stimulation.frequencies,
             fmin=self.fmin, fmax=self.fmax, orders=orders
         )
+
+    # Machine learning routines:
+
+    def predict_timepoints(self, labels, trainingtrials=None,
+                           datatransform=None):
+        pass
+
+    def predict_epochs(self, labels, trainepochs=None,
+                       method=sklearn.linear_model.LogisticRegressionCV()):
+        """
+        This method is for predicting the labels of trials based on the SSVEP
+        power in a trial.
+
+        labels should be a list or array of labels for each trial, and should
+        have the same length as there are Epochs.
+
+        trainepochs should be a list of trial indices that will be used to
+        train - e.g. range(6) - or an ndarray of booleans of the same size as
+        labels. The trials in this index will be used as training trials, and
+        the returned accuracy is based on the trials *not* used for training.
+        """
+
+        # check the method as a fit method
+        assert inspect.ismethod(method.fit), \
+            ('The provided method has no fit function')
+        trainclass = method
+
+        # check that the labels match up with the trial numbers
+        labels = np.array(labels)  # make sure it's an array
+        assert labels.size == len(self), \
+            'Number of labels needs to match number of epochs.'
+
+        # reshape the training data and concatenate them all
+        trainx = self.stimulation.snr.reshape((len(self), -1))
+        for freqtype in ('harmonic', 'subharmonic', 'intermodulation'):
+            # concatenate:
+            freqs = self.__getattribute__(freqtype).frequencies.flatten()
+            trainx = np.concatenate(
+                (trainx,
+                 self.__getattribute__(freqtype).snr[
+                     ..., ~np.isnan(freqs)
+                 ].reshape((len(self), -1))),
+                axis=-1
+            )
+        # trainx = np.concatenate(
+        #     [self.__getattribute__(freqtype).snr.reshape((len(self), -1))
+        #      for freqtype in
+        #      ('stimulation', 'harmonic', 'subharmonic', 'intermodulation')
+        #      if self.__getattribute__(freqtype).snr is not None],
+        #     axis=-1
+        # )
+
+        # if the training trials
+        if trainepochs is not None:
+            trainepochs = np.array(trainepochs)
+            if trainepochs.size == len(self):
+                # probably a boolean
+                testepochs = ~trainepochs
+            else:
+                # probably integer index
+                testepochs = np.array([i for i in range(len(self))
+                                       if i not in trainepochs])
+        else:
+            # use all epochs for both training and test
+            trainepochs = range(len(self))
+            testepochs = range(len(self))
+
+        # train the model
+        trainclass.fit(trainx[trainepochs, :], labels[trainepochs])
+        # predict the model
+        predictions = trainclass.predict(trainx[testepochs, :])
+
+        return np.array(predictions)
+
+    # Plotting methods
 
     def plot_tfr(self, frequency=None, collapse_epochs=True,
                  collapse_electrodes=False,
@@ -493,6 +576,8 @@ class Ssvep(mne.Epochs):
         # fig.colorbar(im, cax=cbar_ax)
         return fig
 
+    # File I/O and printing
+
     def save(self, filename):
         if filename[-5:] != '.hdf5':
             filename = filename + '.hdf5'
@@ -535,6 +620,16 @@ class Ssvep(mne.Epochs):
                          fmax=self.freqs.max())
                      )
         return outstring
+
+    def __len__(self):
+        return self.psd.shape[0]
+
+    def __getitem__(self, key):
+        return self.psd[key, ...]
+
+    def __iter__(self):
+        for idx in range(len(self)):
+            yield(self.psd[idx, ...])
 
 
 def load_ssvep(filename):

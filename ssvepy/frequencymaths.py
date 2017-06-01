@@ -61,13 +61,10 @@ def compute_subharmonics(frequencies, fmin=0.1, fmax=50, orders=range(2, 5)):
         orders = [o for o in range(2, 6)]  # default: 4 harmonics
     elif type(orders) is int:
         orders = [o for o in range(2, orders)]
-    try:
-        freqs = [[f / o for o in orders
-                  if f / o <= fmax and f / o >= fmin]
-                 for f in frequencies]
-    except TypeError:  # if not list, make into list
-        freqs = [[f / o for o in orders
-                  if f / o <= fmax and f / o >= fmin]
-                 for f in [frequencies]]
+
+    freqs = [[f / o if (f / o <= fmax and f / o >= fmin) else np.nan
+              for o in orders]
+             for f in frequencies]
+    # freqs = [f for sublist in freqs for f in sublist]
 
     return np.array(freqs), np.array(orders)
