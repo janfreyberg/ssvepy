@@ -579,6 +579,14 @@ class Ssvep(mne.Epochs):
     # File I/O and printing
 
     def save(self, filename):
+        """
+        Save the data to file.
+
+        - **parameters**::
+
+            :filename: The name of the file, either bare, or with the file
+            extension .hdf5
+        """
         if filename[-5:] != '.hdf5':
             filename = filename + '.hdf5'
         f = h5py.File(filename, 'w')  # open a file
