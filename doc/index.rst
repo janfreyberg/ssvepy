@@ -1,0 +1,30 @@
+.. ssvepy documentation master file, created by
+   sphinx-quickstart on Fri Jun  2 16:25:09 2017.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+
+
+Welcome to ssvepy.
+==================
+
+``ssvepy`` is apackage to analyse MNE-formatted EEG data for steady-state visually evoked potentials, or other evoked frequencies (be it auditory, thermosensory, tactile or otherwise).
+
+Use ``ssvepy`` *after* you process your data with MNE-python. You want to get your data pre-processed and epoched, as the main ``ssvepy`` function accepts objects of the `Epochs <https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs>` class.
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Contents:
+
+   installation.rst
+   example.ipynb
+   api
+
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

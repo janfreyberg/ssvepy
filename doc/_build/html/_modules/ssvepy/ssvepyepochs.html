@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ssvepy.ssvepyepochs &#8212; ssvepy 0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../index.html">
+          ssvepy</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.2</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../example.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 content">
+      
+  <h1>Source code for ssvepy.ssvepyepochs</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">mne</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">frequencymaths</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="k">import</span> <span class="n">lfilter</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage.filters</span> <span class="k">import</span> <span class="n">gaussian_filter</span>
+<span class="kn">import</span> <span class="nn">sklearn.linear_model</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<span class="n">EvokedFrequency</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;EvokedFrequency&#39;</span><span class="p">,</span>
+                                         <span class="p">[</span><span class="s1">&#39;frequencies&#39;</span><span class="p">,</span>
+                                          <span class="s1">&#39;orders&#39;</span><span class="p">,</span>
+                                          <span class="s1">&#39;power&#39;</span><span class="p">,</span>
+                                          <span class="s1">&#39;snr&#39;</span><span class="p">,</span>
+                                          <span class="s1">&#39;tfr&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="Ssvep"><a class="viewcode-back" href="../../api.html#ssvepy.Ssvep">[docs]</a><span class="k">class</span> <span class="nc">Ssvep</span><span class="p">(</span><span class="n">mne</span><span class="o">.</span><span class="n">Epochs</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">stimulation_frequency</span><span class="p">,</span>
+                 <span class="n">noisebandwidth</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                 <span class="n">compute_harmonics</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+                 <span class="n">compute_subharmonics</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+                 <span class="n">compute_intermodulation</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+                 <span class="n">psd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">fmin</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">fmax</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">tmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">compute_tfr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">tfr_method</span><span class="o">=</span><span class="s1">&#39;rls&#39;</span><span class="p">,</span> <span class="n">tfr_time_window</span><span class="o">=</span><span class="mf">0.9</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">info</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">noisebandwidth</span> <span class="o">=</span> <span class="n">noisebandwidth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psd</span> <span class="o">=</span> <span class="n">psd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">=</span> <span class="n">freqs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fmin</span> <span class="o">=</span> <span class="n">fmin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fmax</span> <span class="o">=</span> <span class="n">fmax</span>
+
+        <span class="c1"># Check if the right input was provided:</span>
+        <span class="c1"># TODO: Change into a _check_input method</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;If you provide psd data, you also need to provide&#39;</span>
+                             <span class="s1">&#39; the frequencies at which it was evaluated&#39;</span><span class="p">)</span>
+
+        <span class="c1"># If no power-spectrum was provided, we need to work it out</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Use MNE here. TODO: offer different methods of FFT eval</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">=</span> <span class="n">mne</span><span class="o">.</span><span class="n">time_frequency</span><span class="o">.</span><span class="n">psd_multitaper</span><span class="p">(</span>
+                <span class="n">epochs</span><span class="p">,</span> <span class="n">fmin</span><span class="o">=</span><span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span><span class="o">=</span><span class="n">fmax</span><span class="p">,</span> <span class="n">tmin</span><span class="o">=</span><span class="n">tmin</span><span class="p">,</span> <span class="n">tmax</span><span class="o">=</span><span class="n">tmax</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">frequency_resolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">stimulation_frequency</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">stimulation_frequency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">stimulation_frequency</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">stimulation_frequency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="n">stimulation_frequency</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># Use a custom named tuple for the frequency-related data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span> <span class="o">=</span> <span class="n">EvokedFrequency</span><span class="p">(</span>
+            <span class="n">frequencies</span><span class="o">=</span><span class="n">stimulation_frequency</span><span class="p">,</span>
+            <span class="n">orders</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">stimulation_frequency</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+            <span class="n">power</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_amp</span><span class="p">(</span><span class="n">stimulation_frequency</span><span class="p">),</span>
+            <span class="n">snr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_snr</span><span class="p">(</span><span class="n">stimulation_frequency</span><span class="p">),</span>
+            <span class="n">tfr</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compute_tfr</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">stimulation_frequency</span><span class="p">,</span>
+                                   <span class="n">window_width</span><span class="o">=</span><span class="n">tfr_time_window</span><span class="p">)</span>
+                 <span class="k">if</span> <span class="n">compute_tfr</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">harmfreqs</span><span class="p">,</span> <span class="n">harmorder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_harmonics</span><span class="p">(</span><span class="n">compute_harmonics</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">harmonic</span> <span class="o">=</span> <span class="n">EvokedFrequency</span><span class="p">(</span>
+            <span class="n">frequencies</span><span class="o">=</span><span class="n">harmfreqs</span><span class="p">,</span>
+            <span class="n">orders</span><span class="o">=</span><span class="n">harmorder</span><span class="p">,</span>
+            <span class="n">power</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_amp</span><span class="p">(</span><span class="n">harmfreqs</span><span class="p">),</span>
+            <span class="n">snr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_snr</span><span class="p">(</span><span class="n">harmfreqs</span><span class="p">),</span>
+            <span class="n">tfr</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compute_tfr</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">harmfreqs</span><span class="p">,</span>
+                                   <span class="n">window_width</span><span class="o">=</span><span class="n">tfr_time_window</span><span class="p">)</span>
+                 <span class="k">if</span> <span class="n">compute_tfr</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="p">)</span> <span class="k">if</span> <span class="n">compute_harmonics</span> <span class="k">else</span> <span class="n">EvokedFrequency</span><span class="p">(</span>
+            <span class="n">frequencies</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">orders</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">snr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tfr</span><span class="o">=</span><span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">subfreqs</span><span class="p">,</span> <span class="n">suborder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_subharmonics</span><span class="p">(</span><span class="n">compute_subharmonics</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subharmonic</span> <span class="o">=</span> <span class="n">EvokedFrequency</span><span class="p">(</span>
+            <span class="n">frequencies</span><span class="o">=</span><span class="n">subfreqs</span><span class="p">,</span>
+            <span class="n">orders</span><span class="o">=</span><span class="n">suborder</span><span class="p">,</span>
+            <span class="n">power</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_amp</span><span class="p">(</span><span class="n">subfreqs</span><span class="p">),</span>
+            <span class="n">snr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_snr</span><span class="p">(</span><span class="n">subfreqs</span><span class="p">),</span>
+            <span class="n">tfr</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compute_tfr</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">subfreqs</span><span class="p">,</span>
+                                   <span class="n">window_width</span><span class="o">=</span><span class="n">tfr_time_window</span><span class="p">)</span>
+                 <span class="k">if</span> <span class="n">compute_tfr</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">)</span> <span class="k">if</span> <span class="n">compute_subharmonics</span> <span class="k">else</span> <span class="n">EvokedFrequency</span><span class="p">(</span>
+            <span class="n">frequencies</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">orders</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">snr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tfr</span><span class="o">=</span><span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">compute_intermodulation</span> <span class="ow">and</span> <span class="n">stimulation_frequency</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">interfreqs</span><span class="p">,</span> <span class="n">interorder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_intermodulations</span><span class="p">(</span>
+                <span class="n">compute_intermodulation</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">intermodulation</span> <span class="o">=</span> <span class="n">EvokedFrequency</span><span class="p">(</span>
+                <span class="n">frequencies</span><span class="o">=</span><span class="n">interfreqs</span><span class="p">,</span>
+                <span class="n">orders</span><span class="o">=</span><span class="n">interorder</span><span class="p">,</span>
+                <span class="n">power</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_amp</span><span class="p">(</span><span class="n">interfreqs</span><span class="p">),</span>
+                <span class="n">snr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_snr</span><span class="p">(</span><span class="n">interfreqs</span><span class="p">),</span>
+                <span class="n">tfr</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compute_tfr</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">interfreqs</span><span class="p">,</span>
+                                       <span class="n">window_width</span><span class="o">=</span><span class="n">tfr_time_window</span><span class="p">)</span>
+                     <span class="k">if</span> <span class="n">compute_tfr</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">intermodulation</span> <span class="o">=</span> <span class="n">EvokedFrequency</span><span class="p">(</span>
+                <span class="n">frequencies</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">orders</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">snr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tfr</span><span class="o">=</span><span class="kc">None</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Helper functions to get specific frequencies:</span>
+
+    <span class="k">def</span> <span class="nf">_get_snr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">freqs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function to work out the SNR of a given frequency</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">snr</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">freq</span> <span class="ow">in</span> <span class="n">freqs</span><span class="o">.</span><span class="n">flat</span><span class="p">:</span>
+            <span class="n">stimband</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&lt;=</span> <span class="n">freq</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency_resolution</span><span class="p">)</span> <span class="o">&amp;</span>
+                        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&gt;=</span> <span class="n">freq</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency_resolution</span><span class="p">))</span>
+            <span class="n">noiseband</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&lt;=</span> <span class="n">freq</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisebandwidth</span><span class="p">)</span> <span class="o">&amp;</span>
+                         <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&gt;=</span> <span class="n">freq</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisebandwidth</span><span class="p">)</span> <span class="o">&amp;</span>
+                         <span class="o">~</span><span class="n">stimband</span><span class="p">)</span>
+            <span class="n">snr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">stimband</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">noiseband</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">snr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">snr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">snr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">snr</span>
+
+    <span class="k">def</span> <span class="nf">_get_amp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">freqs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function to get the freq-smoothed amplitude of a frequency</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span>
+                      <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&lt;=</span> <span class="n">freq</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency_resolution</span><span class="p">)</span> <span class="o">&amp;</span>
+                       <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&gt;=</span> <span class="n">freq</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency_resolution</span><span class="p">))</span>
+                      <span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+             <span class="k">for</span> <span class="n">freq</span> <span class="ow">in</span> <span class="n">freqs</span><span class="o">.</span><span class="n">flat</span><span class="p">],</span>
+            <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_tfr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">freq</span><span class="p">,</span> <span class="n">tfr_method</span><span class="o">=</span><span class="s1">&#39;rls&#39;</span><span class="p">,</span> <span class="n">window_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span>
+                     <span class="n">filter_lambda</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Work out the time-frequency composition of different frequencies.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">epoch</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">freq</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Frequencies need to provided in a numpy array.&#39;</span><span class="p">)</span>
+
+        <span class="n">samplefreq</span> <span class="o">=</span> <span class="n">epoch</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;sfreq&#39;</span><span class="p">]</span>
+        <span class="n">n_window</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">samplefreq</span> <span class="o">*</span> <span class="n">window_width</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">filter_lambda</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">lambdafilter</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_window</span><span class="p">)</span> <span class="o">/</span>
+                            <span class="p">(</span><span class="n">n_window</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lambdafilter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">filter_lambda</span><span class="p">,</span>
+                                    <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_window</span><span class="p">))</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">samplefreq</span>
+
+        <span class="c1"># create a data structure that matches MNE standard TFR shape</span>
+        <span class="n">tfr_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                             <span class="n">freq</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">tfr_method</span> <span class="o">==</span> <span class="s1">&#39;rls&#39;</span><span class="p">:</span>
+            <span class="c1"># this implementation follows Sucharit Katyal&#39;s code</span>
+            <span class="k">for</span> <span class="n">fi</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">freq</span><span class="o">.</span><span class="n">flatten</span><span class="p">()):</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+                <span class="c1"># Create the sin and cosine</span>
+                <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                    <span class="k">for</span> <span class="n">electrode</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                        <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">trial</span><span class="p">,</span> <span class="n">electrode</span><span class="p">,</span> <span class="p">:]</span>
+                        <span class="c1"># obtain cosine and since components</span>
+                        <span class="n">hc</span> <span class="o">=</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">lambdafilter</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span> <span class="o">*</span> <span class="n">c</span><span class="p">)</span>
+                        <span class="n">hs</span> <span class="o">=</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">lambdafilter</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span> <span class="o">*</span> <span class="n">s</span><span class="p">)</span>
+                        <span class="c1"># lambda correction, if necessary</span>
+                        <span class="k">if</span> <span class="n">filter_lambda</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">hc</span> <span class="o">=</span> <span class="n">hc</span> <span class="o">/</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">lambdafilter</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">/</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">lambdafilter</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="c1"># combine the data to get envelope</span>
+                        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hc</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">hs</span><span class="p">)</span>
+                        <span class="c1"># shift left, pad zero</span>
+                        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="n">n_window</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+                        <span class="n">a</span><span class="p">[(</span><span class="o">-</span><span class="n">n_window</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                        <span class="c1"># smooth with gaussian</span>
+                        <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="o">-</span><span class="n">n_window</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)]</span> <span class="o">=</span> <span class="n">gaussian_filter</span><span class="p">(</span>
+                            <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="o">-</span><span class="n">n_window</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)],</span> <span class="n">n_window</span> <span class="o">//</span> <span class="mi">10</span>
+                        <span class="p">)</span>
+                        <span class="c1"># set in tfr_data</span>
+                        <span class="n">tfr_data</span><span class="p">[</span><span class="n">trial</span><span class="p">,</span> <span class="n">electrode</span><span class="p">,</span> <span class="n">fi</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Only RLS is available so far.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tfr_data</span>
+
+    <span class="c1"># Helper functions to compute non-linear frequency combos:</span>
+
+    <span class="k">def</span> <span class="nf">_compute_harmonics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orders</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper function around the compute_harmonics function in frequencymaths</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">frequencymaths</span><span class="o">.</span><span class="n">compute_harmonics</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span>
+            <span class="n">fmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fmax</span><span class="p">,</span> <span class="n">orders</span><span class="o">=</span><span class="n">orders</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_subharmonics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orders</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function to compute the subharms from a list, while making sure</span>
+<span class="sd">        they&#39;re in the frequency range</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">frequencymaths</span><span class="o">.</span><span class="n">compute_subharmonics</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span>
+            <span class="n">fmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fmax</span><span class="p">,</span> <span class="n">orders</span><span class="o">=</span><span class="n">orders</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_intermodulations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orders</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function to compute the intermods from a list, while making sure</span>
+<span class="sd">        they&#39;re in the frequency range</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">frequencymaths</span><span class="o">.</span><span class="n">compute_intermodulation</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span>
+            <span class="n">fmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fmax</span><span class="p">,</span> <span class="n">orders</span><span class="o">=</span><span class="n">orders</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Machine learning routines:</span>
+
+    <span class="k">def</span> <span class="nf">predict_timepoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">trainingtrials</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">datatransform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">predict_epochs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">trainepochs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">method</span><span class="o">=</span><span class="n">sklearn</span><span class="o">.</span><span class="n">linear_model</span><span class="o">.</span><span class="n">LogisticRegressionCV</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method is for predicting the labels of trials based on the SSVEP</span>
+<span class="sd">        power in a trial.</span>
+
+<span class="sd">        labels should be a list or array of labels for each trial, and should</span>
+<span class="sd">        have the same length as there are Epochs.</span>
+
+<span class="sd">        trainepochs should be a list of trial indices that will be used to</span>
+<span class="sd">        train - e.g. range(6) - or an ndarray of booleans of the same size as</span>
+<span class="sd">        labels. The trials in this index will be used as training trials, and</span>
+<span class="sd">        the returned accuracy is based on the trials *not* used for training.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check the method as a fit method</span>
+        <span class="k">assert</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">(</span><span class="n">method</span><span class="o">.</span><span class="n">fit</span><span class="p">),</span> \
+            <span class="p">(</span><span class="s1">&#39;The provided method has no fit function&#39;</span><span class="p">)</span>
+        <span class="n">trainclass</span> <span class="o">=</span> <span class="n">method</span>
+
+        <span class="c1"># check that the labels match up with the trial numbers</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>  <span class="c1"># make sure it&#39;s an array</span>
+        <span class="k">assert</span> <span class="n">labels</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> \
+            <span class="s1">&#39;Number of labels needs to match number of epochs.&#39;</span>
+
+        <span class="c1"># reshape the training data and concatenate them all</span>
+        <span class="n">trainx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">freqtype</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;harmonic&#39;</span><span class="p">,</span> <span class="s1">&#39;subharmonic&#39;</span><span class="p">,</span> <span class="s1">&#39;intermodulation&#39;</span><span class="p">):</span>
+            <span class="c1"># concatenate:</span>
+            <span class="n">freqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">freqtype</span><span class="p">)</span><span class="o">.</span><span class="n">frequencies</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">trainx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">trainx</span><span class="p">,</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">freqtype</span><span class="p">)</span><span class="o">.</span><span class="n">snr</span><span class="p">[</span>
+                     <span class="o">...</span><span class="p">,</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span>
+                 <span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">))),</span>
+                <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="c1"># trainx = np.concatenate(</span>
+        <span class="c1">#     [self.__getattribute__(freqtype).snr.reshape((len(self), -1))</span>
+        <span class="c1">#      for freqtype in</span>
+        <span class="c1">#      (&#39;stimulation&#39;, &#39;harmonic&#39;, &#39;subharmonic&#39;, &#39;intermodulation&#39;)</span>
+        <span class="c1">#      if self.__getattribute__(freqtype).snr is not None],</span>
+        <span class="c1">#     axis=-1</span>
+        <span class="c1"># )</span>
+
+        <span class="c1"># if the training trials</span>
+        <span class="k">if</span> <span class="n">trainepochs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">trainepochs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">trainepochs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">trainepochs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1"># probably a boolean</span>
+                <span class="n">testepochs</span> <span class="o">=</span> <span class="o">~</span><span class="n">trainepochs</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># probably integer index</span>
+                <span class="n">testepochs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+                                       <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">trainepochs</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># use all epochs for both training and test</span>
+            <span class="n">trainepochs</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="n">testepochs</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+        <span class="c1"># train the model</span>
+        <span class="n">trainclass</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">trainx</span><span class="p">[</span><span class="n">trainepochs</span><span class="p">,</span> <span class="p">:],</span> <span class="n">labels</span><span class="p">[</span><span class="n">trainepochs</span><span class="p">])</span>
+        <span class="c1"># predict the model</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">trainclass</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">trainx</span><span class="p">[</span><span class="n">testepochs</span><span class="p">,</span> <span class="p">:])</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+
+    <span class="c1"># Plotting methods</span>
+
+    <span class="k">def</span> <span class="nf">plot_tfr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">collapse_epochs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">collapse_electrodes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">)):</span>
+
+        <span class="k">if</span> <span class="n">frequency</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s1">&#39;stimulation&#39;</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">tfr</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">frequency</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">frequency</span><span class="p">)</span><span class="o">.</span><span class="n">tfr</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">frequency</span><span class="p">)</span><span class="o">.</span><span class="n">frequencies</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;sfreq&#39;</span><span class="p">]</span>
+
+        <span class="n">collapse_axes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">ax</span> <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="n">collapse_epochs</span><span class="p">,</span>
+                                        <span class="n">collapse_electrodes</span><span class="p">])</span>
+             <span class="k">if</span> <span class="n">b</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">collapse_axes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">collapse_axes</span><span class="p">)</span>
+        <span class="c1"># Make time the first dimension</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Make a figure (-1 is now freq. dimension)</span>
+        <span class="n">nplots</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nplots</span><span class="p">)))</span>
+        <span class="n">ncols</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">nplots</span> <span class="o">/</span> <span class="n">nrows</span><span class="p">))</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="n">nrows</span><span class="p">,</span>
+                                 <span class="n">ncols</span><span class="o">=</span><span class="n">ncols</span><span class="p">,</span>
+                                 <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+        <span class="c1"># y = np.squeeze(y)</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nplots</span><span class="p">):</span>
+            <span class="c1"># Choose axes to plot in</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">idx</span><span class="p">]</span> <span class="k">if</span> <span class="n">nplots</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">axes</span>
+            <span class="c1"># Plot the individual lines</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">idx</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="c1"># Plot the mean of the data</span>
+            <span class="k">if</span> <span class="n">y</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Time (s)&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Amplitude&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">idx</span><span class="p">])</span>
+                         <span class="o">+</span> <span class="s1">&#39; Hz&#39;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">plot_psd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collapse_epochs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">collapse_electrodes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the power-spectrum that has been calculated for this data.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        collapse_epochs: True (default) or False</span>
+<span class="sd">            Whether you want to plot the average of all epochs (default), or</span>
+<span class="sd">            each power-spectrum individually.</span>
+<span class="sd">        collapse_electrodes: True or False (default)</span>
+<span class="sd">            Whether you want to plot each electrode individually (default), or</span>
+<span class="sd">            only the average of all electrodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ydata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psd</span>
+        <span class="c1"># Average over axes if necessary</span>
+        <span class="n">ydata</span> <span class="o">=</span> <span class="n">ydata</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="nb">tuple</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="k">if</span> <span class="p">[</span><span class="n">collapse_epochs</span><span class="p">,</span>
+                                           <span class="n">collapse_electrodes</span><span class="p">][</span><span class="n">x</span><span class="p">]]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_spectrum</span><span class="p">(</span><span class="n">ydata</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot_snr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collapse_epochs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">collapse_electrodes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the signal-to-noise-ratio-spectrum that has been calculated for</span>
+<span class="sd">        this data.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        collapse_epochs: True (default) or False</span>
+<span class="sd">            Whether you want to plot the average of all epochs (default), or</span>
+<span class="sd">            each power-spectrum individually.</span>
+<span class="sd">        collapse_electrodes: True or False (default)</span>
+<span class="sd">            Whether you want to plot each electrode individually (default), or</span>
+<span class="sd">            only the average of all electrodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Construct the SNR spectrum</span>
+        <span class="n">ydata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_snr</span><span class="p">(</span><span class="n">freq</span><span class="p">)</span>
+                          <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">freq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">)],</span>
+                         <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Average over axes if necessary</span>
+        <span class="n">ydata</span> <span class="o">=</span> <span class="n">ydata</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="nb">tuple</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                                       <span class="k">if</span> <span class="p">[</span><span class="n">collapse_epochs</span><span class="p">,</span>
+                                           <span class="n">collapse_electrodes</span><span class="p">][</span><span class="n">x</span><span class="p">]]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_spectrum</span><span class="p">(</span><span class="n">ydata</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_plot_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function to plot different spectra</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Make sure frequency data is the first index</span>
+        <span class="n">ydata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+            <span class="n">ydata</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="n">ydata</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">size</span><span class="p">)]</span> <span class="o">+</span>
+                         <span class="p">[</span><span class="n">dim</span> <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ydata</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="n">dim</span> <span class="o">!=</span> <span class="n">ydata</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">size</span><span class="p">)])</span>
+        <span class="p">)</span>
+        <span class="c1"># Start figure</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+        <span class="n">xmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span>
+                                 <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">harmonic</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">subharmonic</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">intermodulation</span><span class="o">.</span><span class="n">frequencies</span><span class="p">]</span>
+                                 <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">a</span><span class="p">)])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="c1"># If we didn&#39;t collapse over epochs, split the data</span>
+        <span class="k">if</span> <span class="n">ydata</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ydata</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">,</span> <span class="n">ydata</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">xval</span> <span class="ow">in</span> <span class="n">xmarks</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">xval</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">xmarks</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Average spectrum of all epochs&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ydata</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">ydatas</span> <span class="o">=</span> <span class="p">[</span><span class="n">ydata</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ydata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ydata</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ydatas</span><span class="p">):</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ydatas</span><span class="p">))),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ydatas</span><span class="p">)</span> <span class="o">/</span>
+                                    <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ydatas</span><span class="p">)))),</span>
+                            <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ydata</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">,</span> <span class="n">ydata</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">xval</span> <span class="ow">in</span> <span class="n">xmarks</span><span class="p">:</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">xval</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">xmarks</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Spectrum of epoch </span><span class="si">{n}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">topoplot_psd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collapse_epochs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                     <span class="n">flims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># Find out over which range(s) to collapse:</span>
+        <span class="n">fmins</span><span class="p">,</span> <span class="n">fmaxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_flims</span><span class="p">(</span><span class="n">flims</span><span class="p">)</span>
+
+        <span class="c1"># Get the actual data, collapse across frequency band</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fmins</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">topodata</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span>
+                                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&gt;</span> <span class="n">fmin</span><span class="p">)</span> <span class="o">&amp;</span>
+                                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&lt;</span> <span class="n">fmax</span><span class="p">)]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span> <span class="ow">in</span>
+                        <span class="nb">zip</span><span class="p">(</span><span class="n">fmins</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">fmaxs</span><span class="o">.</span><span class="n">flatten</span><span class="p">())]</span>
+            <span class="n">annot</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">str</span><span class="p">(</span><span class="n">fmin</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; - &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fmax</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; Hz&#39;</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fmins</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">fmaxs</span><span class="o">.</span><span class="n">flatten</span><span class="p">())]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">topodata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&gt;</span> <span class="n">fmins</span><span class="p">)</span> <span class="o">&amp;</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span> <span class="o">&lt;</span> <span class="n">fmaxs</span><span class="p">)]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># annotation</span>
+            <span class="n">annot</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">fmins</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; - &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fmaxs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; Hz&#39;</span><span class="p">)</span>
+        <span class="c1"># also collapse epochs</span>
+        <span class="k">if</span> <span class="n">collapse_epochs</span><span class="p">:</span>
+            <span class="n">topodata</span> <span class="o">=</span> <span class="n">topodata</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Call the actual plotting function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_topo</span><span class="p">(</span><span class="n">topodata</span><span class="p">,</span> <span class="n">annot</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Power&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">topoplot_snr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collapse_epochs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                     <span class="n">flims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># Find out over which range(s) to collapse:</span>
+        <span class="n">fmins</span><span class="p">,</span> <span class="n">fmaxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_flims</span><span class="p">(</span><span class="n">flims</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fmins</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">topodata</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_snr</span><span class="p">(</span><span class="n">freq</span><span class="p">)</span>
+                                  <span class="k">for</span> <span class="n">freq</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">freqs</span>
+                                  <span class="k">if</span> <span class="n">freq</span> <span class="o">&gt;</span> <span class="n">fmin</span> <span class="ow">and</span> <span class="n">freq</span> <span class="o">&lt;</span> <span class="n">fmax</span><span class="p">],</span>
+                                 <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fmins</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">fmaxs</span><span class="o">.</span><span class="n">flatten</span><span class="p">())]</span>
+            <span class="n">annot</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">str</span><span class="p">(</span><span class="n">fmin</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; - &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fmax</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; Hz&#39;</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fmins</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">fmaxs</span><span class="o">.</span><span class="n">flatten</span><span class="p">())]</span>
+            <span class="k">if</span> <span class="n">collapse_epochs</span><span class="p">:</span>
+                <span class="n">topodata</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">topodata</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">topodata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_snr</span><span class="p">(</span><span class="n">freq</span><span class="p">)</span>
+                                 <span class="k">for</span> <span class="n">freq</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">freqs</span>
+                                 <span class="k">if</span> <span class="n">freq</span> <span class="o">&gt;</span> <span class="n">fmins</span> <span class="ow">and</span> <span class="n">freq</span> <span class="o">&lt;</span> <span class="n">fmaxs</span><span class="p">],</span>
+                                <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># annotation</span>
+            <span class="n">annot</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">fmins</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; - &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fmaxs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; Hz&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">collapse_epochs</span><span class="p">:</span>
+                <span class="n">topodata</span> <span class="o">=</span> <span class="n">topodata</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_topo</span><span class="p">(</span><span class="n">topodata</span><span class="p">,</span> <span class="n">annot</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;SNR&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s1">&#39;xx-large&#39;</span><span class="p">)</span>
+        <span class="c1"># plt.figtext(0.05, 0.05, annot,</span>
+        <span class="c1">#             size=&#39;small&#39;)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_flims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flims</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function that turns strings or lists into helpful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">flims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">flims</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">fmins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">flims</span><span class="p">)</span><span class="o">.</span><span class="n">frequencies</span> <span class="o">-</span> <span class="mf">0.1</span>
+                <span class="n">fmaxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">flims</span><span class="p">)</span><span class="o">.</span><span class="n">frequencies</span> <span class="o">+</span> <span class="mf">0.1</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">flims</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">flims</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+                <span class="n">fmins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">flims</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">])</span>
+                <span class="n">fmaxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">flims</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">flims</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">fmins</span> <span class="o">=</span> <span class="p">[</span><span class="n">flim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">flim</span> <span class="ow">in</span> <span class="n">flims</span><span class="p">]</span>
+                        <span class="n">fmaxs</span> <span class="o">=</span> <span class="p">[</span><span class="n">flim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">flim</span> <span class="ow">in</span> <span class="n">flims</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                    <span class="n">fmins</span> <span class="o">=</span> <span class="n">flims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">fmaxs</span> <span class="o">=</span> <span class="n">flims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fmins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span> <span class="o">-</span> <span class="mf">0.1</span>
+            <span class="n">fmaxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span> <span class="o">+</span> <span class="mf">0.1</span>
+
+        <span class="k">return</span> <span class="n">fmins</span><span class="p">,</span> <span class="n">fmaxs</span>
+
+    <span class="k">def</span> <span class="nf">_plot_topo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topodata</span><span class="p">,</span> <span class="n">annotation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">,</span>
+                   <span class="n">channels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function to plot scalp distribution</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get the montage</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">mne</span><span class="o">.</span><span class="n">channels</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">_auto_topomap_coords</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ch_names</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">topodata</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">topodata</span> <span class="o">=</span> <span class="p">[</span><span class="n">topodata</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">annotation</span> <span class="o">=</span> <span class="p">[</span><span class="n">annotation</span><span class="p">]</span>
+        <span class="c1"># get the common vmin and vmax values across all our data</span>
+        <span class="k">if</span> <span class="n">vmin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">vmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">topodata</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">vmax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">topodata</span><span class="p">])</span>
+        <span class="c1"># Make a Figure</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">topodata</span><span class="p">)))),</span>
+                                 <span class="n">ncols</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">topodata</span><span class="p">)</span> <span class="o">/</span>
+                                                   <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">topodata</span><span class="p">))))),</span>
+                                 <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">topodata</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="c1"># Check for infs or nans and remove them</span>
+            <span class="n">bads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="o">~</span><span class="n">bads</span><span class="p">]</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="o">~</span><span class="n">bads</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="c1"># pick correct axes</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">idx</span><span class="p">]</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">axes</span>
+            <span class="n">im</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">mne</span><span class="o">.</span><span class="n">viz</span><span class="o">.</span><span class="n">plot_topomap</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
+                                         <span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">,</span>
+                                         <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">annotation</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+        <span class="c1"># add a colorbar:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+        <span class="c1"># fig = plt.gcf()</span>
+        <span class="c1"># fig.subplots_adjust(right=0.8)</span>
+        <span class="c1"># cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])</span>
+        <span class="c1"># fig.colorbar(im, cax=cbar_ax)</span>
+        <span class="k">return</span> <span class="n">fig</span>
+
+    <span class="c1"># File I/O and printing</span>
+
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the data to file.</span>
+
+<span class="sd">        - **parameters**::</span>
+
+<span class="sd">            :filename: The name of the file, either bare, or with the file</span>
+<span class="sd">            extension .hdf5</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="o">!=</span> <span class="s1">&#39;.hdf5&#39;</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.hdf5&#39;</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>  <span class="c1"># open a file</span>
+        <span class="c1"># First the necessary data:</span>
+        <span class="n">psd</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;psd&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">)</span>
+        <span class="n">freqs</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;freqs&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="p">)</span>
+        <span class="c1"># whack in the info structure:</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s1">&#39;info&#39;</span><span class="p">)</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;infostring&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">))</span>
+        <span class="c1"># Store the various evoked frequency structures:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">tup</span> <span class="ow">in</span> <span class="p">[(</span><span class="s1">&#39;stimulation&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s1">&#39;harmonic&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">harmonic</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s1">&#39;subharmonic&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subharmonic</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s1">&#39;intermodulation&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermodulation</span><span class="p">)]:</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">tup</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">g</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+        <span class="c1"># Store the frequency resolution</span>
+        <span class="n">psdinfo</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s1">&#39;psdinfo&#39;</span><span class="p">)</span>
+        <span class="n">psdinfo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;frequency_resolution&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency_resolution</span>
+        <span class="n">psdinfo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;fmin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmin</span>
+        <span class="n">psdinfo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;fmax&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmax</span>
+        <span class="n">psdinfo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;noisebandwidth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisebandwidth</span>
+
+        <span class="c1"># Finally, close the file:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">outstring</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;ssvepy data structure based on epoched data.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                     <span class="s1">&#39;The stimulation frequency(s) is </span><span class="si">{stimfreq}</span><span class="s1">.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                     <span class="s1">&#39;There are </span><span class="si">{nepoch}</span><span class="s1"> epochs.</span><span class="se">\n</span><span class="s1"> The power spectrum was &#39;</span>
+                     <span class="s1">&#39;evaluated over </span><span class="si">{nfreqs}</span><span class="s1"> frequencies (</span><span class="si">{fmin}</span><span class="s1"> Hz - &#39;</span>
+                     <span class="s1">&#39;</span><span class="si">{fmax}</span><span class="s1"> Hz).</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                         <span class="n">stimfreq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">frequencies</span><span class="p">,</span>
+                         <span class="n">nepoch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                         <span class="n">nfreqs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                         <span class="n">fmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+                         <span class="n">fmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+                     <span class="p">)</span>
+        <span class="k">return</span> <span class="n">outstring</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">[</span><span class="n">key</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="k">yield</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psd</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span></div>
+
+
+<span class="k">def</span> <span class="nf">load_ssvep</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="c1"># define namedtuple as a go-between</span>
+    <span class="n">DummyEpoch</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;DummyEpoch&#39;</span><span class="p">,</span> <span class="n">field_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="o">!=</span> <span class="s1">&#39;.hdf5&#39;</span><span class="p">:</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.hdf5&#39;</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>  <span class="c1"># open file for reading</span>
+
+    <span class="n">ssvep</span> <span class="o">=</span> <span class="n">Ssvep</span><span class="p">(</span>
+        <span class="n">DummyEpoch</span><span class="p">(</span><span class="n">info</span><span class="o">=</span><span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;infostring&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tostring</span><span class="p">())),</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;stimulation&#39;</span><span class="p">][</span><span class="s1">&#39;frequencies&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">noisebandwidth</span><span class="o">=</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;psdinfo&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;noisebandwidth&#39;</span><span class="p">],</span>
+        <span class="n">compute_harmonics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">compute_subharmonics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">compute_intermodulation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">psd</span><span class="o">=</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;psd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">freqs</span><span class="o">=</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;freqs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">fmin</span><span class="o">=</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;psdinfo&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;fmin&#39;</span><span class="p">],</span>
+        <span class="n">fmax</span><span class="o">=</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;psdinfo&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;fmax&#39;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Load the evoked frequency structures and try to use them:</span>
+    <span class="k">for</span> <span class="n">ftype</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;stimulation&#39;</span><span class="p">,</span> <span class="s1">&#39;harmonic&#39;</span><span class="p">,</span> <span class="s1">&#39;subharmonic&#39;</span><span class="p">,</span> <span class="s1">&#39;intermodulation&#39;</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ssvep</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+                <span class="n">ftype</span><span class="p">,</span>
+                <span class="n">EvokedFrequency</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">value</span>
+                                   <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="n">ftype</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+            <span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="c1"># close the file:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="c1"># and return the loaded data:</span>
+    <span class="k">return</span> <span class="n">ssvep</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Jan Freyberg.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+ssvepy/__init__.py
+ssvepy/dummydata.py
+ssvepy/ssvepyepochs.py
+ssvepy.egg-info/PKG-INFO
+ssvepy.egg-info/SOURCES.txt
+ssvepy.egg-info/dependency_links.txt
+ssvepy.egg-info/requires.txt
+ssvepy.egg-info/top_level.txt

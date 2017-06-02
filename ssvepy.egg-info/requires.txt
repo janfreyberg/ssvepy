@@ -1,0 +1,3 @@
+mne
+numpy
+matplotlib
