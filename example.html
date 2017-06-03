@@ -4,7 +4,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Exploring power and signal-to-noise ratio at evoked frequencies &#8212; ssvepy 0.2 documentation</title>
+    <title>Example Usage &#8212; ssvepy 0.2 documentation</title>
     
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -68,10 +68,7 @@
       aria-labelledby="dLabelGlobalToc"><p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Install</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Exploring power and signal-to-noise ratio at evoked frequencies</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#Plotting">Plotting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#Exploring-time-frequency-decompositions-of-your-data">Exploring time-frequency decompositions of your data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#Using-your-evoked-frequency-data-to-classify-epochs">Using your evoked frequency data to classify epochs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 </ul>
@@ -86,10 +83,13 @@
   <ul class="dropdown-menu localtoc"
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
-<li><a class="reference internal" href="#">Exploring power and signal-to-noise ratio at evoked frequencies</a></li>
+<li><a class="reference internal" href="#">Example Usage</a><ul>
+<li><a class="reference internal" href="#Exploring-power-and-signal-to-noise-ratio-at-evoked-frequencies">Exploring power and signal-to-noise ratio at evoked frequencies</a></li>
 <li><a class="reference internal" href="#Plotting">Plotting</a></li>
 <li><a class="reference internal" href="#Exploring-time-frequency-decompositions-of-your-data">Exploring time-frequency decompositions of your data</a></li>
 <li><a class="reference internal" href="#Using-your-evoked-frequency-data-to-classify-epochs">Using your evoked frequency data to classify epochs</a></li>
+</ul>
+</li>
 </ul>
 </ul>
 </li>
@@ -299,6 +299,9 @@ div.nboutput div.output_area.stderr {
 
 .ansi-bold { font-weight: bold; }
 </style>
+<div class="section" id="Example-Usage">
+<h1>Example Usage<a class="headerlink" href="#Example-Usage" title="Permalink to this headline">¶</a></h1>
+<p>Here, I want to use an example dataset that ships with ssvepy</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none"><div class="highlight"><pre>
 <span></span>In [1]:
@@ -328,6 +331,7 @@ Isotrak not found
 0 projection items activated
 </pre></div></div>
 </div>
+<hr class="docutils" />
 <p>This is a file that’s already pre-processed and epoched. You can check
 it’s details like this:</p>
 <div class="nbinput docutils container">
@@ -351,6 +355,7 @@ it’s details like this:</p>
 </pre></div>
 </div>
 </div>
+<hr class="docutils" />
 <p>In this data, the subject was stimulated at 6 Hz, with every 5th image
 (i.e. at 1.2 Hz) being a face. So we have two stimulation frequencies:
 1.2 and 6 Hz.</p>
@@ -394,7 +399,7 @@ it’s details like this:</p>
 </div>
 <hr class="docutils" />
 <div class="section" id="Exploring-power-and-signal-to-noise-ratio-at-evoked-frequencies">
-<h1>Exploring power and signal-to-noise ratio at evoked frequencies<a class="headerlink" href="#Exploring-power-and-signal-to-noise-ratio-at-evoked-frequencies" title="Permalink to this headline">¶</a></h1>
+<h2>Exploring power and signal-to-noise ratio at evoked frequencies<a class="headerlink" href="#Exploring-power-and-signal-to-noise-ratio-at-evoked-frequencies" title="Permalink to this headline">¶</a></h2>
 <p>You can check, for example, what the power at the stimulation frequency
 was (averaged over all electrodes):</p>
 <div class="nbinput docutils container">
@@ -540,7 +545,7 @@ when you create the <code class="docutils literal"><span class="pre">Ssvep</span
 </div>
 <hr class="docutils" />
 <div class="section" id="Plotting">
-<h1>Plotting<a class="headerlink" href="#Plotting" title="Permalink to this headline">¶</a></h1>
+<h2>Plotting<a class="headerlink" href="#Plotting" title="Permalink to this headline">¶</a></h2>
 <p>We can easily visualise both the power spectrum and the SNR spectrum:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none"><div class="highlight"><pre>
@@ -556,7 +561,7 @@ when you create the <code class="docutils literal"><span class="pre">Ssvep</span
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/example_15_0.png" src="_images/example_15_0.png" />
+<img alt="_images/example_16_0.png" src="_images/example_16_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -573,7 +578,7 @@ when you create the <code class="docutils literal"><span class="pre">Ssvep</span
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/example_16_0.png" src="_images/example_16_0.png" />
+<img alt="_images/example_17_0.png" src="_images/example_17_0.png" />
 </div>
 </div>
 <p>Note: the red line is the average of all electrodes, the blue lines are
@@ -598,7 +603,7 @@ ssvep analysis data structure:</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/example_19_0.png" src="_images/example_19_0.png" />
+<img alt="_images/example_20_0.png" src="_images/example_20_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -615,7 +620,7 @@ ssvep analysis data structure:</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/example_20_0.png" src="_images/example_20_0.png" />
+<img alt="_images/example_21_0.png" src="_images/example_21_0.png" />
 </div>
 </div>
 <p>Just to compare, we can also plot the signal-to-noise-ratio for a random
@@ -636,7 +641,7 @@ plot:</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/example_22_0.png" src="_images/example_22_0.png" />
+<img alt="_images/example_23_0.png" src="_images/example_23_0.png" />
 </div>
 </div>
 <p>And again, you can plot these for the non-linear products of the
@@ -655,13 +660,13 @@ stimulation frequency:</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/example_24_0.png" src="_images/example_24_0.png" />
+<img alt="_images/example_25_0.png" src="_images/example_25_0.png" />
 </div>
 </div>
 </div>
 <hr class="docutils" />
 <div class="section" id="Exploring-time-frequency-decompositions-of-your-data">
-<h1>Exploring time-frequency decompositions of your data<a class="headerlink" href="#Exploring-time-frequency-decompositions-of-your-data" title="Permalink to this headline">¶</a></h1>
+<h2>Exploring time-frequency decompositions of your data<a class="headerlink" href="#Exploring-time-frequency-decompositions-of-your-data" title="Permalink to this headline">¶</a></h2>
 <p>You can also explore the time-frequency relationship of your entrained
 frequencies. This uses the recursive-least-squares method (described in
 Tang &amp; Norcia, 1995). By default turned off, you can enable it by
@@ -709,13 +714,13 @@ the evoked frequencies you specified.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/example_27_0.png" src="_images/example_27_0.png" />
+<img alt="_images/example_28_0.png" src="_images/example_28_0.png" />
 </div>
 </div>
 </div>
 <hr class="docutils" />
 <div class="section" id="Using-your-evoked-frequency-data-to-classify-epochs">
-<h1>Using your evoked frequency data to classify epochs<a class="headerlink" href="#Using-your-evoked-frequency-data-to-classify-epochs" title="Permalink to this headline">¶</a></h1>
+<h2>Using your evoked frequency data to classify epochs<a class="headerlink" href="#Using-your-evoked-frequency-data-to-classify-epochs" title="Permalink to this headline">¶</a></h2>
 <p>You can also use your evoked frequeny data for classification. Ssvepy
 can do two types of classification: It can classify an epoch, based on a
 model trained on other epoch data, and it can classify timepoints, based
@@ -823,6 +828,7 @@ could be anything. Let’s try a different scikit learn algorithm:</p>
 <div class="input_area highlight-ipython3"><div class="highlight"><pre>
 <span></span>
 </pre></div>
+</div>
 </div>
 </div>
 </div>
