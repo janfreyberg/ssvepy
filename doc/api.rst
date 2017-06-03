@@ -1,6 +1,0 @@
-
-
-API
-===
-
-.. autoclass:: ssvepy.Ssvep
