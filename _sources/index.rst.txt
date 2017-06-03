@@ -10,7 +10,7 @@ Welcome to ssvepy.
 
 ``ssvepy`` is apackage to analyse MNE-formatted EEG data for steady-state visually evoked potentials, or other evoked frequencies (be it auditory, thermosensory, tactile or otherwise).
 
-Use ``ssvepy`` *after* you process your data with MNE-python. You want to get your data pre-processed and epoched, as the main ``ssvepy`` function accepts objects of the `Epochs <https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs>` class.
+Use ``ssvepy`` *after* you process your data with MNE-python. You want to get your data pre-processed and epoched, as the main ``ssvepy`` function accepts objects of the `Epochs<https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs>`_ class.
 
 .. toctree::
    :maxdepth: 3

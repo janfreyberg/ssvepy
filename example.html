@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Exploring power and signal-to-noise ratio at evoked frequencies &#8212; ssvepy 0.2 documentation</title>
+    
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API" href="api.html" />
+    <link rel="prev" title="Install" href="installation.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          ssvepy</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.2</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Install</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Exploring power and signal-to-noise ratio at evoked frequencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Plotting">Plotting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Exploring-time-frequency-decompositions-of-your-data">Exploring time-frequency decompositions of your data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Using-your-evoked-frequency-data-to-classify-epochs">Using your evoked frequency data to classify epochs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Exploring power and signal-to-noise ratio at evoked frequencies</a></li>
+<li><a class="reference internal" href="#Plotting">Plotting</a></li>
+<li><a class="reference internal" href="#Exploring-time-frequency-decompositions-of-your-data">Exploring time-frequency decompositions of your data</a></li>
+<li><a class="reference internal" href="#Using-your-evoked-frequency-data-to-classify-epochs">Using your evoked frequency data to classify epochs</a></li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="installation.html" title="Previous Chapter: Install"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Install</span>
+    </a>
+  </li>
+  <li>
+    <a href="api.html" title="Next Chapter: API"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">API &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+              <li class="hidden-sm">
+<div id="sourcelink">
+  <a href="_sources/example.ipynb.txt"
+     rel="nofollow">Source</a>
+</div></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 content">
+      
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput,
+div.nbinput div.prompt,
+div.nbinput div.input_area,
+div.nbinput div[class*=highlight],
+div.nbinput div[class*=highlight] pre,
+div.nboutput,
+div.nbinput div.prompt,
+div.nbinput div.output_area,
+div.nboutput div[class*=highlight],
+div.nboutput div[class*=highlight] pre {
+    background: none;
+    border: none;
+    padding: 0 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+/* avoid gaps between output lines */
+div.nboutput div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput,
+div.nboutput {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput,
+    div.nboutput {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput div.prompt pre {
+    color: #303F9F;
+}
+
+/* output prompt */
+div.nboutput div.prompt pre {
+    color: #D84315;
+}
+
+/* all prompts */
+div.nbinput div.prompt,
+div.nboutput div.prompt {
+    min-width: 9ex;
+    padding-top: 0.4em;
+    padding-right: 0.4em;
+    text-align: right;
+    flex: 0;
+}
+@media (max-width: 540px) {
+    div.nbinput div.prompt,
+    div.nboutput div.prompt {
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput div.prompt.empty {
+        padding: 0;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput div.prompt pre,
+div.nboutput div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput div.input_area,
+div.nboutput div.output_area {
+    padding: 0.4em;
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput div.input_area,
+    div.nboutput div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput div.input_area {
+    border: 1px solid #cfcfcf;
+    border-radius: 2px;
+    background: #f7f7f7;
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.pngmath center alignment in output cells */
+div.nboutput div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-bold { font-weight: bold; }
+</style>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">mne</span>
+<span class="kn">import</span> <span class="nn">ssvepy</span>
+<span class="c1"># get an example data set:</span>
+<span class="kn">from</span> <span class="nn">ssvepy.exampledata</span> <span class="k">import</span> <span class="n">epoch_example</span>
+
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Reading /Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/exampledata/example-epo.fif ...
+Isotrak not found
+    Found the data of interest:
+        t =       0.00 ...   15996.09 ms
+        0 CTF compensation matrices available
+16 matching events found
+16 matching events found
+0 projection items activated
+</pre></div></div>
+</div>
+<p>This is a file that’s already pre-processed and epoched. You can check
+it’s details like this:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">epoch_example</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>Out[3]:
+</pre></div>
+</div>
+<div class="output_area highlight-none"><div class="highlight"><pre>
+<span></span>&lt;EpochsFIF  |  n_events : 16 (all good), tmin : 0.0 (s), tmax : 15.99609375 (s), baseline : (0.0, 0.0), ~32.1 MB, data loaded,
+ &#39;101&#39;: 1, &#39;103&#39;: 1, &#39;104&#39;: 1, &#39;108&#39;: 1, &#39;109&#39;: 1, &#39;110&#39;: 1, &#39;115&#39;: 1, &#39;116&#39;: 1, &#39;202&#39;: 1, &#39;205&#39;: 1, &#39;206&#39;: 1, &#39;207&#39;: 1, &#39;211&#39;: 1, &#39;212&#39;: 1, &#39;213&#39;: 1, &#39;214&#39;: 1&gt;
+</pre></div>
+</div>
+</div>
+<p>In this data, the subject was stimulated at 6 Hz, with every 5th image
+(i.e. at 1.2 Hz) being a face. So we have two stimulation frequencies:
+1.2 and 6 Hz.</p>
+<p>We can create an SSVEP analysis structure like this:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span> <span class="o">=</span> <span class="n">ssvepy</span><span class="o">.</span><span class="n">Ssvep</span><span class="p">(</span><span class="n">epoch_example</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">],</span> <span class="n">fmin</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">fmax</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="stderr output_area docutils container">
+<div class="highlight"><pre>
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:142: RuntimeWarning: invalid value encountered in less_equal
+  for freq in freqs.flat],
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:142: RuntimeWarning: invalid value encountered in greater_equal
+  for freq in freqs.flat],
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:142: RuntimeWarning: Mean of empty slice.
+  for freq in freqs.flat],
+/Library/anaconda/envs/py36/lib/python3.6/site-packages/numpy/core/_methods.py:73: RuntimeWarning: invalid value encountered in true_divide
+  ret, rcount, out=ret, casting=&#39;unsafe&#39;, subok=False)
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:123: RuntimeWarning: invalid value encountered in less_equal
+  stimband = ((self.freqs &lt;= freq + self.frequency_resolution) &amp;
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:124: RuntimeWarning: invalid value encountered in greater_equal
+  (self.freqs &gt;= freq - self.frequency_resolution))
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:126: RuntimeWarning: invalid value encountered in less_equal
+  (self.freqs &gt;= freq - self.noisebandwidth) &amp;
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:126: RuntimeWarning: invalid value encountered in greater_equal
+  (self.freqs &gt;= freq - self.noisebandwidth) &amp;
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:128: RuntimeWarning: Mean of empty slice.
+  snr.append(self.psd[..., stimband].mean(axis=-1) /
+/Users/jan/Dropbox/Documents/side-projects/ssvepy/ssvepy/ssvepyepochs.py:129: RuntimeWarning: Mean of empty slice.
+  self.psd[..., noiseband].mean(axis=-1))
+</pre></div></div>
+</div>
+<hr class="docutils" />
+<div class="section" id="Exploring-power-and-signal-to-noise-ratio-at-evoked-frequencies">
+<h1>Exploring power and signal-to-noise ratio at evoked frequencies<a class="headerlink" href="#Exploring-power-and-signal-to-noise-ratio-at-evoked-frequencies" title="Permalink to this headline">¶</a></h1>
+<p>You can check, for example, what the power at the stimulation frequency
+was (averaged over all electrodes):</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">power</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>Out[4]:
+</pre></div>
+</div>
+<div class="output_area highlight-none"><div class="highlight"><pre>
+<span></span>3.2258907579264815e-09
+</pre></div>
+</div>
+</div>
+<p>We can also check all the harmonic frequencies in your frequency range.
+You can investigate the frequencies, which order the frequencies are,
+and what the frequency power was.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">harmonic</span><span class="o">.</span><span class="n">frequencies</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>Out[6]:
+</pre></div>
+</div>
+<div class="output_area highlight-none"><div class="highlight"><pre>
+<span></span>array([[ 12.,  18.,  24.,  30.]])
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">harmonic</span><span class="o">.</span><span class="n">orders</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>Out[7]:
+</pre></div>
+</div>
+<div class="output_area highlight-none"><div class="highlight"><pre>
+<span></span>array([2, 3, 4, 5])
+</pre></div>
+</div>
+</div>
+<p>The numpy array that contains the power values has the following
+dimensions:</p>
+<ol class="arabic simple">
+<li>Epoch</li>
+<li>Electrodes</li>
+<li>Frequencies</li>
+</ol>
+<p>We can work out the power at these frequencies by averaging over epochs
+and electrodes.</p>
+<p>There is an array with the same dimensions that holds the
+signal-to-noise ration for the harmonic frequencies, too.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">harmonic</span><span class="o">.</span><span class="n">power</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">ssvep_example</span><span class="o">.</span><span class="n">harmonic</span><span class="o">.</span><span class="n">power</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(16, 64, 4)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>Out[8]:
+</pre></div>
+</div>
+<div class="output_area highlight-none"><div class="highlight"><pre>
+<span></span>array([  7.32671447e-10,   2.48359140e-10,   1.20176901e-10,
+         7.01583927e-11])
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">harmonic</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">ssvep_example</span><span class="o">.</span><span class="n">harmonic</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(16, 64, 4)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>Out[9]:
+</pre></div>
+</div>
+<div class="output_area highlight-none"><div class="highlight"><pre>
+<span></span>array([ 1.68739754,  1.23014751,  1.07890902,  0.94730138])
+</pre></div>
+</div>
+</div>
+<p>As you can see, the signal amplitude and signal-to-noise ratio decreases
+with each harmonic, with the fourth harmonic (24 Hz) already having
+almost no signal.</p>
+<p>The calculation for this SNR is by default done by dividing the average
+power at a given frequency and dividing it by the average power in a 1
+Hz band around it. You can set the width of this <em>noise</em> band yourself
+when you create the <code class="docutils literal"><span class="pre">Ssvep</span></code> class.</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="Plotting">
+<h1>Plotting<a class="headerlink" href="#Plotting" title="Permalink to this headline">¶</a></h1>
+<p>We can easily visualise both the power spectrum and the SNR spectrum:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">plot_psd</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/example_15_0.png" src="_images/example_15_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">plot_snr</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/example_16_0.png" src="_images/example_16_0.png" />
+</div>
+</div>
+<p>Note: the red line is the average of all electrodes, the blue lines are
+individual electrode. By default, all the <strong>evoked</strong> frequencies that
+have been evaluated (fundamental, harmonic, subharmonic) are indicated
+by vertical lines (the stimulation frequency, and the harmonics /
+subharmonics.</p>
+<p>We can also visualise this on a scalp plot. This usually requires you to
+have set the montage of the raw / epoched data before you create the
+ssvep analysis data structure:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">topoplot_snr</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/example_19_0.png" src="_images/example_19_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">topoplot_psd</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/example_20_0.png" src="_images/example_20_0.png" />
+</div>
+</div>
+<p>Just to compare, we can also plot the signal-to-noise-ratio for a random
+frequency using the <code class="docutils literal"><span class="pre">flims</span></code> parameter. To compare it to the SNR plot
+above we can set the <code class="docutils literal"><span class="pre">vmax</span></code> to something in line with the previous
+plot:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">topoplot_snr</span><span class="p">(</span><span class="n">flims</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">3.5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/example_22_0.png" src="_images/example_22_0.png" />
+</div>
+</div>
+<p>And again, you can plot these for the non-linear products of the
+stimulation frequency:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">topoplot_snr</span><span class="p">(</span><span class="n">flims</span><span class="o">=</span><span class="s1">&#39;harmonic&#39;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/example_24_0.png" src="_images/example_24_0.png" />
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="Exploring-time-frequency-decompositions-of-your-data">
+<h1>Exploring time-frequency decompositions of your data<a class="headerlink" href="#Exploring-time-frequency-decompositions-of-your-data" title="Permalink to this headline">¶</a></h1>
+<p>You can also explore the time-frequency relationship of your entrained
+frequencies. This uses the recursive-least-squares method (described in
+Tang &amp; Norcia, 1995). By default turned off, you can enable it by
+passing the argument <code class="docutils literal"><span class="pre">compute_tfr=True</span></code> during class creation. It
+takes a while, but will evaluate the time-frequency relationship of all
+the evoked frequencies you specified.</p>
+<p>The resulting data has the dimensions of MNE-standard frequency data:</p>
+<ol class="arabic simple">
+<li>Trial / Epoch</li>
+<li>Electrode</li>
+<li>Frequency</li>
+<li>Time</li>
+</ol>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span> <span class="o">=</span> <span class="n">ssvepy</span><span class="o">.</span><span class="n">Ssvep</span><span class="p">(</span><span class="n">epoch_example</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">fmin</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">fmax</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">compute_tfr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">stimulation</span><span class="o">.</span><span class="n">tfr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(16, 64, 1, 4096)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">ssvep_example</span><span class="o">.</span><span class="n">plot_tfr</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/example_27_0.png" src="_images/example_27_0.png" />
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="Using-your-evoked-frequency-data-to-classify-epochs">
+<h1>Using your evoked frequency data to classify epochs<a class="headerlink" href="#Using-your-evoked-frequency-data-to-classify-epochs" title="Permalink to this headline">¶</a></h1>
+<p>You can also use your evoked frequeny data for classification. Ssvepy
+can do two types of classification: It can classify an epoch, based on a
+model trained on other epoch data, and it can classify timepoints, based
+on other timepoints. I will first show you how to classify epochs.</p>
+<p>In the example data, on half the trials (trigger code 1XX), faces were
+rhythmically presented at 1.2 Hz. During the other half, faces were
+presented at completely random intervals, meaning there was no 1.2 Hz
+rhythm. Here, we’ll see if we can use SSVEPs to classify these trials.</p>
+<p>(<em>NB: this is not best practice. There were only 16 trials here, which
+is not usually enough for machine learning classification to make any
+sense. But this is just a demonstration.</em>)</p>
+<p>For this, we need a list of labels. This list needs to have the exact
+same size as the number of epochs in our ssvep structure. Since the
+trial labels were effectively encoded in the trigger codes, I can use
+this to construct a list of labels:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">labels</span> <span class="o">=</span> <span class="p">(</span><span class="n">epoch_example</span><span class="o">.</span><span class="n">events</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+<span class="n">labels</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>Out[5]:
+</pre></div>
+</div>
+<div class="output_area highlight-none"><div class="highlight"><pre>
+<span></span>array([0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0], dtype=int32)
+</pre></div>
+</div>
+</div>
+<p>We can use these labels to train a model, and it will return a predicted
+label for each trial, as well as a score. It will use the average
+signal-to-noise ratio for each epoch, for each electrode, for each
+evoked frequency (including stimulation, and all
+intermodulation/subharmonic frequencies).</p>
+<p>By default, it uses <code class="docutils literal"><span class="pre">sklearn.linear_model.LogisticRegressionCV</span></code>, a
+linear logistic regression model that will use cross-validation to
+optimise the parameters and avoid overfitting.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="n">predictions</span> <span class="o">=</span> <span class="n">ssvep_example</span><span class="o">.</span><span class="n">predict_epochs</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">((</span><span class="n">labels</span><span class="o">==</span><span class="n">predictions</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0 1 0 0 1 1 1 0 0 0 1 1 1 1 0 0]
+[0 1 0 0 1 1 1 0 0 0 1 1 1 1 0 0]
+1.0
+</pre></div></div>
+</div>
+<p>We can also provide a different algorithm for classifying the epochs -
+they have to follow the scikit learn standard of being classes with a
+<code class="docutils literal"><span class="pre">fit(X,</span> <span class="pre">y)</span></code>, <code class="docutils literal"><span class="pre">predict(X)</span></code> and <code class="docutils literal"><span class="pre">score(X,</span> <span class="pre">y)</span></code> method, but otherwise
+could be anything. Let’s try a different scikit learn algorithm:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sklearn.svm</span>
+
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">ssvep_example</span><span class="o">.</span><span class="n">predict_epochs</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">sklearn</span><span class="o">.</span><span class="n">svm</span><span class="o">.</span><span class="n">SVC</span><span class="p">())</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">((</span><span class="n">labels</span><span class="o">==</span><span class="n">predictions</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0 1 0 0 1 1 1 0 0 0 1 1 1 1 0 0]
+[0 1 0 0 1 1 1 0 0 0 1 1 1 1 0 0]
+1.0
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none"><div class="highlight"><pre>
+<span></span>In [ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3"><div class="highlight"><pre>
+<span></span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Jan Freyberg.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
