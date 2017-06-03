@@ -28,9 +28,6 @@ gh-pages:
 			git reset HEAD
 			make html
 			mv -fv $(BUILDDIR)/html/* ./
-			mv -fv $(BUILDDIR)/html/_sources/* ./_sources/
-			mv -fv $(BUILDDIR)/html/_static/* ./_static/
-			mv -fv $(BUILDDIR)/html/_modules/* ./_modules/
 			rm -rf $(SOURCEDIR) build
 			> .nojekyll
 			git add -A
