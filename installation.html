@@ -4,7 +4,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to ssvepy. &#8212; ssvepy 0.2 documentation</title>
+    <title>Install &#8212; ssvepy 0.2 documentation</title>
     
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -29,7 +29,8 @@
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Install" href="installation.html" />
+    <link rel="next" title="API" href="api.html" />
+    <link rel="prev" title="Welcome to ssvepy." href="index.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -47,7 +48,7 @@
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="#">
+        <a class="navbar-brand" href="index.html">
           ssvepy</a>
         <span class="navbar-text navbar-version pull-left"><b>0.2</b></span>
       </div>
@@ -61,12 +62,12 @@
      id="dLabelGlobalToc"
      data-toggle="dropdown"
      data-target="#"
-     href="#">Site <b class="caret"></b></a>
+     href="index.html">Site <b class="caret"></b></a>
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Install</a></li>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Install</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 </ul>
@@ -81,8 +82,7 @@
   <ul class="dropdown-menu localtoc"
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
-<li><a class="reference internal" href="#">Welcome to ssvepy.</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#">Install</a></li>
 </ul>
 </ul>
 </li>
@@ -92,7 +92,11 @@
               
                 
   <li>
-    <a href="installation.html" title="Next Chapter: Install"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Install &raquo;</span>
+    <a href="index.html" title="Previous Chapter: Welcome to ssvepy."><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Welcome to ssvepy.</span>
+    </a>
+  </li>
+  <li>
+    <a href="api.html" title="Next Chapter: API"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">API &raquo;</span>
     </a>
   </li>
               
@@ -102,7 +106,7 @@
             
               <li class="hidden-sm">
 <div id="sourcelink">
-  <a href="_sources/index.rst.txt"
+  <a href="_sources/installation.rst.txt"
      rel="nofollow">Source</a>
 </div></li>
             
@@ -126,25 +130,14 @@
   <div class="row">
     <div class="col-md-12 content">
       
-  <div class="section" id="welcome-to-ssvepy">
-<h1>Welcome to ssvepy.<a class="headerlink" href="#welcome-to-ssvepy" title="Permalink to this headline">¶</a></h1>
-<p><code class="docutils literal"><span class="pre">ssvepy</span></code> is apackage to analyse MNE-formatted EEG data for steady-state visually evoked potentials, or other evoked frequencies (be it auditory, thermosensory, tactile or otherwise).</p>
-<p>Use <code class="docutils literal"><span class="pre">ssvepy</span></code> <em>after</em> you process your data with MNE-python. You want to get your data pre-processed and epoched, as the main <code class="docutils literal"><span class="pre">ssvepy</span></code> function accepts objects of the <cite>Epochs &lt;https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs&gt;</cite> class.</p>
-<div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Install</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
-</ul>
+  <div class="section" id="install">
+<h1>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h1>
+<p>It’s pretty easy!</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">git</span><span class="o">+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">janfreyberg</span><span class="o">/</span><span class="n">ssvepy</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
 </div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
-<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
-</ul>
+<p>As always with pip packages, you can install a “development” version of this package by (forking and) cloning the git repository and installing it via <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">/path/to/package</span></code>.</p>
+<p>Please open a pull request if you make improvements!</p>
 </div>
 
 
