@@ -7,8 +7,8 @@ SPHINXBUILD   = python -msphinx
 SPHINXPROJ    = ssvepy
 SOURCEDIR     = .
 GH_PAGES_SOURCES = ./
-# BUILDDIR      = _build
-BUILDDIR      = ..
+BUILDDIR      = _build
+# BUILDDIR      = ..
 
 # Put it first so that "make" without argument is like "make help".
 help:
