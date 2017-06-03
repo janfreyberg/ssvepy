@@ -5,9 +5,9 @@
 SPHINXOPTS    =
 SPHINXBUILD   = python -msphinx
 SPHINXPROJ    = ssvepy
-SOURCEDIR     = .
-GH_PAGES_SOURCES = ./
-BUILDDIR      = _build
+SOURCEDIR     = ./doc
+GH_PAGES_SOURCES = Makefile doc
+BUILDDIR      = doc/_build
 # BUILDDIR      = ..
 
 # Put it first so that "make" without argument is like "make help".
@@ -27,7 +27,7 @@ gh-pages:
 			git checkout master $(GH_PAGES_SOURCES)
 			git reset HEAD
 			make html
-			mv -fv _build/html/* ./
-			rm -rf $(GH_PAGES_SOURCES) build
+			mv -fv $(BUILDDIR)/html/* ./
+			rm -rf $(SOURCEDIR) build
 			git add -A
 			git ci -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
