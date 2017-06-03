@@ -6,7 +6,7 @@ SPHINXOPTS    =
 SPHINXBUILD   = python -msphinx
 SPHINXPROJ    = ssvepy
 SOURCEDIR     = .
-GH_PAGES_SOURCES = doc/* doc/Makefile
+GH_PAGES_SOURCES = ./
 # BUILDDIR      = _build
 BUILDDIR      = ..
 
