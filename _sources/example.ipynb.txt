@@ -6,7 +6,8 @@
    "source": [
     "# Example Usage\n",
     "\n",
-    "Here, I want to use an example dataset that ships with ssvepy"
+    "Here, I want to use an example dataset that ships with ssvepy. Download the source notebook for your own use here:\n",
+    "https://github.com/janfreyberg/ssvepy/blob/master/doc/example.ipynb"
    ]
   },
   {
