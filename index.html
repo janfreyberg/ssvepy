@@ -8,6 +8,7 @@
     
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -130,7 +131,7 @@
   <div class="section" id="welcome-to-ssvepy">
 <h1>Welcome to ssvepy.<a class="headerlink" href="#welcome-to-ssvepy" title="Permalink to this headline">¶</a></h1>
 <p><code class="docutils literal"><span class="pre">ssvepy</span></code> is apackage to analyse MNE-formatted EEG data for steady-state visually evoked potentials, or other evoked frequencies (be it auditory, thermosensory, tactile or otherwise).</p>
-<p>Use <code class="docutils literal"><span class="pre">ssvepy</span></code> <em>after</em> you process your data with MNE-python. You want to get your data pre-processed and epoched, as the main <code class="docutils literal"><span class="pre">ssvepy</span></code> function accepts objects of the <a class="reference external" href="https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs">Epochs</a> class.</p>
+<p>Use <code class="docutils literal"><span class="pre">ssvepy</span></code> <em>after</em> you process your data with MNE-python. You want to get your data pre-processed and epoched, as the main <code class="docutils literal"><span class="pre">ssvepy</span></code> function accepts objects of the <a class="reference external" href="https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs" title="(in MNE v0.14.1)"><code class="docutils literal"><span class="pre">mne.Epochs</span></code></a> class.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
@@ -142,7 +143,11 @@
 <li class="toctree-l2"><a class="reference internal" href="example.html#Using-your-evoked-frequency-data-to-classify-epochs">Using your evoked frequency data to classify epochs</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/ssvepy.Ssvep.html">ssvepy.Ssvep</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ssvepy.load_ssvep.html">ssvepy.load_ssvep</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>

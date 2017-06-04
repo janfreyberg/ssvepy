@@ -1,0 +1,32 @@
+dl.docutils dt {
+  font-size: 120%;
+  border-top: 1px solid black;
+}
+
+dl.docutils th.field-name {
+  width: 20%;
+}
+
+div.method-div dt {
+  display: none;
+}
+
+div.method-div dl.method dt {
+  display: block;
+}
+
+div.method-div dd p {
+  display: none;
+}
+
+div.method-div dl.method dd p {
+  display: block;
+}
+
+div.method-div dd table {
+  display: none;
+}
+
+div.method-div dl.method dd table {
+  display: block;
+}
