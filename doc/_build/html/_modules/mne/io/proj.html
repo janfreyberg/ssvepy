@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>mne.io.proj &#8212; ssvepy 0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          ssvepy</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.2</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../example.html">Example Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 content">
+      
+  <h1>Source code for mne.io.proj</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Authors: Alexandre Gramfort &lt;alexandre.gramfort@telecom-paristech.fr&gt;</span>
+<span class="c1">#          Matti Hamalainen &lt;msh@nmr.mgh.harvard.edu&gt;</span>
+<span class="c1">#          Denis Engemann &lt;denis.engemann@gmail.com&gt;</span>
+<span class="c1">#          Teon Brooks &lt;teon.brooks@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: BSD (3-clause)</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">count</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">sqrt</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">linalg</span>
+
+<span class="kn">from</span> <span class="nn">.tree</span> <span class="k">import</span> <span class="n">dir_tree_find</span>
+<span class="kn">from</span> <span class="nn">.tag</span> <span class="k">import</span> <span class="n">find_tag</span>
+<span class="kn">from</span> <span class="nn">.constants</span> <span class="k">import</span> <span class="n">FIFF</span>
+<span class="kn">from</span> <span class="nn">.pick</span> <span class="k">import</span> <span class="n">pick_types</span>
+<span class="kn">from</span> <span class="nn">.write</span> <span class="k">import</span> <span class="p">(</span><span class="n">write_int</span><span class="p">,</span> <span class="n">write_float</span><span class="p">,</span> <span class="n">write_string</span><span class="p">,</span> <span class="n">write_name_list</span><span class="p">,</span>
+                    <span class="n">write_float_matrix</span><span class="p">,</span> <span class="n">end_block</span><span class="p">,</span> <span class="n">start_block</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="k">import</span> <span class="n">logger</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">warn</span>
+<span class="kn">from</span> <span class="nn">..externals.six</span> <span class="k">import</span> <span class="n">string_types</span>
+
+
+<span class="k">class</span> <span class="nc">Projection</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Projection vector.</span>
+
+<span class="sd">    A basic class to proj a meaningful print for projection vectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># noqa: D105</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;, active : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;, n_channels : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;ncol&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;Projection  |  </span><span class="si">%s</span><span class="s2">&gt;&quot;</span> <span class="o">%</span> <span class="n">s</span>
+
+
+<span class="k">class</span> <span class="nc">ProjMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixin class for Raw, Evoked, Epochs.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This mixin adds a proj attribute as a property to data containers.</span>
+<span class="sd">    It is True if at least one proj is present and all of them are active.</span>
+<span class="sd">    The projs might not be applied yet if data are not preloaded. In</span>
+<span class="sd">    this case it&#39;s the _projector attribute that does the job.</span>
+<span class="sd">    If a private _data attribute is present then the projs applied</span>
+<span class="sd">    to it are the ones marked as active.</span>
+
+<span class="sd">    A proj parameter passed in constructor of raw or epochs calls</span>
+<span class="sd">    apply_proj and hence after the .proj attribute is True.</span>
+
+<span class="sd">    As soon as you&#39;ve applied the projs it will stay active in the</span>
+<span class="sd">    remaining pipeline.</span>
+
+<span class="sd">    The suggested pipeline is proj=True in epochs (it&#39;s cheaper than for raw).</span>
+
+<span class="sd">    When you use delayed SSP in Epochs, projs are applied when you call</span>
+<span class="sd">    get_data() method. They are not applied to the evoked._data unless you call</span>
+<span class="sd">    apply_proj(). The reason is that you want to reject with projs although</span>
+<span class="sd">    it&#39;s not stored in proj mode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">proj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Whether or not projections are active.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                <span class="nb">all</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]))</span>
+
+    <span class="nd">@verbose</span>
+    <span class="k">def</span> <span class="nf">add_proj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">projs</span><span class="p">,</span> <span class="n">remove_existing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add SSP projection vectors.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        projs : list</span>
+<span class="sd">            List with projection vectors.</span>
+<span class="sd">        remove_existing : bool</span>
+<span class="sd">            Remove the projection vectors currently in the file.</span>
+<span class="sd">        verbose : bool, str, int, or None</span>
+<span class="sd">            If not None, override default verbose level (see</span>
+<span class="sd">            :func:`mne.verbose` and :ref:`Logging documentation &lt;tut_logging&gt;`</span>
+<span class="sd">            for more).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : instance of Raw | Epochs | Evoked</span>
+<span class="sd">            The data container.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">Projection</span><span class="p">):</span>
+            <span class="n">projs</span> <span class="o">=</span> <span class="p">[</span><span class="n">projs</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Projection</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projs</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only projs can be added. You supplied &#39;</span>
+                             <span class="s1">&#39;something else.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># mark proj as inactive, as they have not been applied</span>
+        <span class="n">projs</span> <span class="o">=</span> <span class="n">deactivate_proj</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">remove_existing</span><span class="p">:</span>
+            <span class="c1"># we cannot remove the proj if they are active</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot remove projectors that have &#39;</span>
+                                 <span class="s1">&#39;already been applied&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">projs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">projs</span><span class="p">)</span>
+        <span class="c1"># We don&#39;t want to add projectors that are activated again.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_uniquify_projs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">],</span>
+                                             <span class="n">check_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">apply_proj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the signal space projection (SSP) operators to the data.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Once the projectors have been applied, they can no longer be</span>
+<span class="sd">        removed. It is usually not recommended to apply the projectors at</span>
+<span class="sd">        too early stages, as they are applied automatically later on</span>
+<span class="sd">        (e.g. when computing inverse solutions).</span>
+<span class="sd">        Hint: using the copy method individual projection vectors</span>
+<span class="sd">        can be tested without affecting the original data.</span>
+<span class="sd">        With evoked data, consider the following example::</span>
+
+<span class="sd">            projs_a = mne.read_proj(&#39;proj_a.fif&#39;)</span>
+<span class="sd">            projs_b = mne.read_proj(&#39;proj_b.fif&#39;)</span>
+<span class="sd">            # add the first, copy, apply and see ...</span>
+<span class="sd">            evoked.add_proj(a).copy().apply_proj().plot()</span>
+<span class="sd">            # add the second, copy, apply and see ...</span>
+<span class="sd">            evoked.add_proj(b).copy().apply_proj().plot()</span>
+<span class="sd">            # drop the first and see again</span>
+<span class="sd">            evoked.copy().del_proj(0).apply_proj().plot()</span>
+<span class="sd">            evoked.apply_proj()  # finally keep both</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : instance of Raw | Epochs | Evoked</span>
+<span class="sd">            The instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..epochs</span> <span class="k">import</span> <span class="n">BaseEpochs</span>
+        <span class="kn">from</span> <span class="nn">..evoked</span> <span class="k">import</span> <span class="n">Evoked</span>
+        <span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">BaseRaw</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No projector specified for this dataset. &#39;</span>
+                        <span class="s1">&#39;Please consider the method self.add_proj.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="c1"># Exit delayed mode if you apply proj</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">BaseEpochs</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_do_delayed_proj</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Leaving delayed SSP mode.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_do_delayed_proj</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Projections have already been applied. &#39;</span>
+                        <span class="s1">&#39;Setting proj attribute to True.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="n">_projector</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">setup_proj</span><span class="p">(</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">),</span> <span class="n">activate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="c1"># let&#39;s not raise a RuntimeError here, otherwise interactive plotting</span>
+        <span class="k">if</span> <span class="n">_projector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># won&#39;t be fun.</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;The projections don</span><span class="se">\&#39;</span><span class="s1">t apply to these data.&#39;</span>
+                        <span class="s1">&#39; Doing nothing.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_projector</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">_projector</span><span class="p">,</span> <span class="n">info</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="n">BaseRaw</span><span class="p">,</span> <span class="n">Evoked</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preload</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_projector</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># BaseEpochs</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preload</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_epoch</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>  <span class="c1"># will automatically apply</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;SSP projectors applied...&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">del_proj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove SSP projection vector.</span>
+
+<span class="sd">        Note: The projection vector can only be removed if it is inactive</span>
+<span class="sd">              (has not been applied to the data).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        idx : int | list of int | str</span>
+<span class="sd">            Index of the projector to remove. Can also be &quot;all&quot; (default)</span>
+<span class="sd">            to remove all projectors.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : instance of Raw | Epochs | Evoked</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">])))</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot remove projectors that have already &#39;</span>
+                             <span class="s1">&#39;been applied&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">pi</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">])</span>
+                              <span class="k">if</span> <span class="n">pi</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">plot_projs_topomap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ch_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot SSP vector.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ch_type : &#39;mag&#39; | &#39;grad&#39; | &#39;planar1&#39; | &#39;planar2&#39; | &#39;eeg&#39; | None | List</span>
+<span class="sd">            The channel type to plot. For &#39;grad&#39;, the gradiometers are collec-</span>
+<span class="sd">            ted in pairs and the RMS for each pair is plotted. If None</span>
+<span class="sd">            (default), it will return all channel types present. If a list of</span>
+<span class="sd">            ch_types is provided, it will return multiple figures.</span>
+<span class="sd">        layout : None | Layout | List of Layouts</span>
+<span class="sd">            Layout instance specifying sensor positions (does not need to</span>
+<span class="sd">            be specified for Neuromag data). If possible, the correct</span>
+<span class="sd">            layout file is inferred from the data; if no appropriate layout</span>
+<span class="sd">            file was found, the layout is automatically generated from the</span>
+<span class="sd">            sensor locations. Or a list of Layout if projections</span>
+<span class="sd">            are from different sensor types.</span>
+<span class="sd">        axes : instance of Axes | list | None</span>
+<span class="sd">            The axes to plot to. If list, the list must be a list of Axes of</span>
+<span class="sd">            the same length as the number of projectors. If instance of Axes,</span>
+<span class="sd">            there must be only one projector. Defaults to None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fig : instance of matplotlib figure</span>
+<span class="sd">            Figure distributing one image per channel across sensor topography.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">..viz.topomap</span> <span class="k">import</span> <span class="n">plot_projs_topomap</span>
+            <span class="kn">from</span> <span class="nn">..channels.layout</span> <span class="k">import</span> <span class="n">find_layout</span>
+            <span class="k">if</span> <span class="n">layout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">layout</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="n">ch_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ch_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">ch</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;meg&#39;</span><span class="p">,</span> <span class="s1">&#39;eeg&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">ch</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ch_type</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+                    <span class="n">ch_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">ch_type</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">ch_type</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">ch</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                        <span class="n">layout</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">find_layout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">[]))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Channel type </span><span class="si">%s</span><span class="s1"> is not found in info.&#39;</span> <span class="o">%</span> <span class="n">ch</span><span class="p">)</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_projs_topomap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">],</span> <span class="n">layout</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Info is missing projs. Nothing to plot.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fig</span>
+
+
+<span class="k">def</span> <span class="nf">_proj_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">check_active</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test if two projectors are equal.&quot;&quot;&quot;</span>
+    <span class="n">equal</span> <span class="o">=</span> <span class="p">((</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">check_active</span><span class="p">)</span> <span class="ow">and</span>
+             <span class="n">a</span><span class="p">[</span><span class="s1">&#39;kind&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;kind&#39;</span><span class="p">]</span> <span class="ow">and</span>
+             <span class="n">a</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">]</span> <span class="ow">and</span>
+             <span class="n">a</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">]</span> <span class="ow">and</span>
+             <span class="n">a</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;row_names&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;row_names&#39;</span><span class="p">]</span> <span class="ow">and</span>
+             <span class="n">a</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;ncol&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;ncol&#39;</span><span class="p">]</span> <span class="ow">and</span>
+             <span class="n">a</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">]</span> <span class="ow">and</span>
+             <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">equal</span>
+
+
+<span class="nd">@verbose</span>
+<span class="k">def</span> <span class="nf">_read_proj</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read spatial projections from a FIF file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fid : file</span>
+<span class="sd">        The file descriptor of the open file.</span>
+<span class="sd">    node : tree node</span>
+<span class="sd">        The node of the tree where to look.</span>
+<span class="sd">    verbose : bool, str, int, or None</span>
+<span class="sd">        If not None, override default verbose level (see :func:`mne.verbose`</span>
+<span class="sd">        and :ref:`Logging documentation &lt;tut_logging&gt;` for more).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    projs: dict</span>
+<span class="sd">        The list of projections.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">projs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+    <span class="c1">#   Locate the projection data</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">dir_tree_find</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFB_PROJ</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">projs</span>
+
+    <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_NCHAN</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">global_nchan</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="n">dir_tree_find</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFB_PROJ_ITEM</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="c1">#   Find all desired tags in one item</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_NCHAN</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nchan</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nchan</span> <span class="o">=</span> <span class="n">global_nchan</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_DESCRIPTION</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_NAME</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">desc</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Projection item description missing&#39;</span><span class="p">)</span>
+
+        <span class="c1"># XXX : is this useful ?</span>
+        <span class="c1"># tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)</span>
+        <span class="c1"># if tag is not None:</span>
+        <span class="c1">#     namelist = tag.data</span>
+        <span class="c1"># else:</span>
+        <span class="c1">#     raise ValueError(&#39;Projection item channel list missing&#39;)</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_KIND</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Projection item kind missing&#39;</span><span class="p">)</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_NVEC</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nvec</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of projection vectors not specified&#39;</span><span class="p">)</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_CH_NAME_LIST</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Projection item channel list missing&#39;</span><span class="p">)</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_VECTORS</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Projection item data missing&#39;</span><span class="p">)</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_MNE_PROJ_ITEM_ACTIVE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">find_tag</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_MNE_ICA_PCA_EXPLAINED_VAR</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">explained_var</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">explained_var</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># handle the case when data is transposed for some reason</span>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">nvec</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of channel names does not match the &#39;</span>
+                             <span class="s1">&#39;size of data matrix&#39;</span><span class="p">)</span>
+
+        <span class="c1">#   Use exactly the same fields in data as in a named matrix</span>
+        <span class="n">one</span> <span class="o">=</span> <span class="n">Projection</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="n">active</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="n">desc</span><span class="p">,</span>
+                         <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">nrow</span><span class="o">=</span><span class="n">nvec</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="n">nchan</span><span class="p">,</span> <span class="n">row_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">col_names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">),</span>
+                         <span class="n">explained_var</span><span class="o">=</span><span class="n">explained_var</span><span class="p">)</span>
+
+        <span class="n">projs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">one</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">projs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;    Read a total of </span><span class="si">%d</span><span class="s1"> projection items:&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">projs</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">projs</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">projs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;active&#39;</span><span class="p">]:</span>
+                <span class="n">misc</span> <span class="o">=</span> <span class="s1">&#39;active&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">misc</span> <span class="o">=</span> <span class="s1">&#39; idle&#39;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;        </span><span class="si">%s</span><span class="s1"> (</span><span class="si">%d</span><span class="s1"> x </span><span class="si">%d</span><span class="s1">) </span><span class="si">%s</span><span class="s1">&#39;</span>
+                        <span class="o">%</span> <span class="p">(</span><span class="n">projs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;desc&#39;</span><span class="p">],</span> <span class="n">projs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">],</span>
+                           <span class="n">projs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;ncol&#39;</span><span class="p">],</span> <span class="n">misc</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">projs</span>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1"># Write</span>
+
+<span class="k">def</span> <span class="nf">_write_proj</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">projs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write a projection operator to a file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fid : file</span>
+<span class="sd">        The file descriptor of the open file.</span>
+<span class="sd">    projs : dict</span>
+<span class="sd">        The projection operator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">projs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">start_block</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFB_PROJ</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">proj</span> <span class="ow">in</span> <span class="n">projs</span><span class="p">:</span>
+        <span class="n">start_block</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFB_PROJ_ITEM</span><span class="p">)</span>
+        <span class="n">write_int</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_NCHAN</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;ncol&#39;</span><span class="p">])</span>
+        <span class="n">write_name_list</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_CH_NAME_LIST</span><span class="p">,</span>
+                        <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">])</span>
+        <span class="n">write_string</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_NAME</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">])</span>
+        <span class="n">write_int</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_KIND</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;kind&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;kind&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFV_PROJ_ITEM_FIELD</span><span class="p">:</span>
+            <span class="n">write_float</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_TIME</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="n">write_int</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_NVEC</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">])</span>
+        <span class="n">write_int</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_MNE_PROJ_ITEM_ACTIVE</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">])</span>
+        <span class="n">write_float_matrix</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_PROJ_ITEM_VECTORS</span><span class="p">,</span>
+                           <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;explained_var&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">write_float</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFF_MNE_ICA_PCA_EXPLAINED_VAR</span><span class="p">,</span>
+                        <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;explained_var&#39;</span><span class="p">])</span>
+        <span class="n">end_block</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFB_PROJ_ITEM</span><span class="p">)</span>
+
+    <span class="n">end_block</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFB_PROJ</span><span class="p">)</span>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1"># Utils</span>
+
+<span class="k">def</span> <span class="nf">_check_projs</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check that projs is a list of Projection.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;projs must be a list or tuple, got </span><span class="si">%s</span><span class="s1">&#39;</span>
+                        <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">projs</span><span class="p">),))</span>
+    <span class="k">for</span> <span class="n">pi</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">projs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Projection</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;All entries in projs list must be Projection &#39;</span>
+                            <span class="s1">&#39;instances, but projs[</span><span class="si">%d</span><span class="s1">] is type </span><span class="si">%s</span><span class="s1">&#39;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">projs</span><span class="p">)</span> <span class="k">if</span> <span class="n">copy</span> <span class="k">else</span> <span class="n">projs</span>
+
+
+<span class="k">def</span> <span class="nf">make_projector</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">ch_names</span><span class="p">,</span> <span class="n">bads</span><span class="o">=</span><span class="p">(),</span> <span class="n">include_active</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create an SSP operator from SSP projection vectors.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    projs : list</span>
+<span class="sd">        List of projection vectors.</span>
+<span class="sd">    ch_names : list of str</span>
+<span class="sd">        List of channels to include in the projection matrix.</span>
+<span class="sd">    bads : list of str</span>
+<span class="sd">        Some bad channels to exclude. If bad channels were marked</span>
+<span class="sd">        in the raw file when projs were calculated using mne-python,</span>
+<span class="sd">        they should not need to be included here as they will</span>
+<span class="sd">        have been automatically omitted from the projectors.</span>
+<span class="sd">    include_active : bool</span>
+<span class="sd">        Also include projectors that are already active.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    proj : array of shape [n_channels, n_channels]</span>
+<span class="sd">        The projection operator to apply to the data.</span>
+<span class="sd">    nproj : int</span>
+<span class="sd">        How many items in the projector.</span>
+<span class="sd">    U : array</span>
+<span class="sd">        The orthogonal basis of the projection vectors (optional).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_make_projector</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">ch_names</span><span class="p">,</span> <span class="n">bads</span><span class="p">,</span> <span class="n">include_active</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_make_projector</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">ch_names</span><span class="p">,</span> <span class="n">bads</span><span class="o">=</span><span class="p">(),</span> <span class="n">include_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subselect projs based on ch_names and bads.</span>
+
+<span class="sd">    Use inplace=True mode to modify ``projs`` inplace so that no</span>
+<span class="sd">    warning will be raised next time projectors are constructed with</span>
+<span class="sd">    the given inputs. If inplace=True, no meaningful data are returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nchan</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_names</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nchan</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No channel names specified&#39;</span><span class="p">)</span>
+
+    <span class="n">default_return</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nchan</span><span class="p">,</span> <span class="n">nchan</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[])</span>
+
+    <span class="c1">#   Check trivial cases first</span>
+    <span class="k">if</span> <span class="n">projs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">default_return</span>
+
+    <span class="n">nvec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">nproj</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">include_active</span><span class="p">:</span>
+            <span class="n">nproj</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">nvec</span> <span class="o">+=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">nproj</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">default_return</span>
+
+    <span class="c1">#   Pick the appropriate entries</span>
+    <span class="n">vecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nchan</span><span class="p">,</span> <span class="n">nvec</span><span class="p">))</span>
+    <span class="n">nvec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">nonzero</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">projs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">include_active</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">])</span> <span class="o">!=</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">]))):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Channel name list in projection item </span><span class="si">%d</span><span class="s1">&#39;</span>
+                                 <span class="s1">&#39; contains duplicate items&#39;</span> <span class="o">%</span> <span class="n">k</span><span class="p">)</span>
+
+            <span class="c1"># Get the two selection vectors to pick correct elements from</span>
+            <span class="c1"># the projection vectors omitting bad channels</span>
+            <span class="n">sel</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">vecsel</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ch_names</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bads</span><span class="p">:</span>
+                    <span class="n">sel</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                    <span class="n">vecsel</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+
+            <span class="c1"># If there is something to pick, pickit</span>
+            <span class="n">nrow</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">]</span>
+            <span class="n">this_vecs</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[:,</span> <span class="n">nvec</span><span class="p">:</span><span class="n">nvec</span> <span class="o">+</span> <span class="n">nrow</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sel</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">this_vecs</span><span class="p">[</span><span class="n">sel</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][:,</span> <span class="n">vecsel</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="c1"># Rescale for better detection of small singular values</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">]):</span>
+                <span class="n">psize</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">this_vecs</span><span class="p">[:,</span> <span class="n">v</span><span class="p">]</span> <span class="o">*</span> <span class="n">this_vecs</span><span class="p">[:,</span> <span class="n">v</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="n">psize</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">orig_n</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                    <span class="c1"># Average ref still works if channels are removed</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vecsel</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.9</span> <span class="o">*</span> <span class="n">orig_n</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">inplace</span> <span class="ow">and</span> \
+                            <span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;kind&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFV_MNE_PROJ_ITEM_EEG_AVREF</span> <span class="ow">or</span>
+                             <span class="nb">len</span><span class="p">(</span><span class="n">vecsel</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Projection vector &quot;</span><span class="si">%s</span><span class="s1">&quot; has magnitude </span><span class="si">%0.2f</span><span class="s1"> &#39;</span>
+                             <span class="s1">&#39;(should be unity), applying projector with &#39;</span>
+                             <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1"> of the original channels available may &#39;</span>
+                             <span class="s1">&#39;be dangerous, consider recomputing and adding &#39;</span>
+                             <span class="s1">&#39;projection vectors for channels that are &#39;</span>
+                             <span class="s1">&#39;eventually used. If this is intentional, &#39;</span>
+                             <span class="s1">&#39;consider using info.normalize_proj()&#39;</span>
+                             <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">],</span> <span class="n">psize</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vecsel</span><span class="p">),</span> <span class="n">orig_n</span><span class="p">))</span>
+                    <span class="n">this_vecs</span><span class="p">[:,</span> <span class="n">v</span><span class="p">]</span> <span class="o">/=</span> <span class="n">psize</span>
+                    <span class="n">nonzero</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># If doing &quot;inplace&quot; mode, &quot;fix&quot; the projectors to only operate</span>
+            <span class="c1"># on this subset of channels.</span>
+            <span class="k">if</span> <span class="n">inplace</span><span class="p">:</span>
+                <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">this_vecs</span><span class="p">[</span><span class="n">sel</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+                <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;col_names&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span>
+                                          <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">vecsel</span><span class="p">]</span>
+            <span class="n">nvec</span> <span class="o">+=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;nrow&#39;</span><span class="p">]</span>
+
+    <span class="c1">#   Check whether all of the vectors are exactly zero</span>
+    <span class="k">if</span> <span class="n">nonzero</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">inplace</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">default_return</span>
+
+    <span class="c1"># Reorthogonalize the vectors</span>
+    <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">vecs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">nvec</span><span class="p">],</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Throw away the linearly dependent guys</span>
+    <span class="n">nproj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">S</span> <span class="o">/</span> <span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">1e-2</span><span class="p">)</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="p">[:,</span> <span class="p">:</span><span class="n">nproj</span><span class="p">]</span>
+
+    <span class="c1"># Here is the celebrated result</span>
+    <span class="n">proj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nchan</span><span class="p">,</span> <span class="n">nchan</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">proj</span><span class="p">,</span> <span class="n">nproj</span><span class="p">,</span> <span class="n">U</span>
+
+
+<span class="k">def</span> <span class="nf">_normalize_proj</span><span class="p">(</span><span class="n">info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Normalize proj after subselection to avoid warnings.</span>
+
+<span class="sd">    This is really only useful for tests, and might not be needed</span>
+<span class="sd">    eventually if we change or improve our handling of projectors</span>
+<span class="sd">    with picks.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Here we do info.get b/c info can actually be a noise cov</span>
+    <span class="n">_make_projector</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">],</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ch_names&#39;</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">)),</span>
+                    <span class="n">info</span><span class="p">[</span><span class="s1">&#39;bads&#39;</span><span class="p">],</span> <span class="n">include_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">make_projector_info</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">include_active</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make an SSP operator using the measurement info.</span>
+
+<span class="sd">    Calls make_projector on good channels.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    info : dict</span>
+<span class="sd">        Measurement info.</span>
+<span class="sd">    include_active : bool</span>
+<span class="sd">        Also include projectors that are already active.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    proj : array of shape [n_channels, n_channels]</span>
+<span class="sd">        The projection operator to apply to the data.</span>
+<span class="sd">    nproj : int</span>
+<span class="sd">        How many items in the projector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">proj</span><span class="p">,</span> <span class="n">nproj</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">make_projector</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">],</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ch_names&#39;</span><span class="p">],</span>
+                                    <span class="n">info</span><span class="p">[</span><span class="s1">&#39;bads&#39;</span><span class="p">],</span> <span class="n">include_active</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">proj</span><span class="p">,</span> <span class="n">nproj</span>
+
+
+<span class="nd">@verbose</span>
+<span class="k">def</span> <span class="nf">activate_proj</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set all projections to active.</span>
+
+<span class="sd">    Useful before passing them to make_projector.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    projs : list</span>
+<span class="sd">        The projectors.</span>
+<span class="sd">    copy : bool</span>
+<span class="sd">        Modify projs in place or operate on a copy.</span>
+<span class="sd">    verbose : bool, str, int, or None</span>
+<span class="sd">        If not None, override default verbose level (see :func:`mne.verbose`</span>
+<span class="sd">        and :ref:`Logging documentation &lt;tut_logging&gt;` for more).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    projs : list</span>
+<span class="sd">        The projectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
+        <span class="n">projs</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">projs</span><span class="p">)</span>
+
+    <span class="c1">#   Activate the projection items</span>
+    <span class="k">for</span> <span class="n">proj</span> <span class="ow">in</span> <span class="n">projs</span><span class="p">:</span>
+        <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> projection items activated&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">projs</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">projs</span>
+
+
+<span class="nd">@verbose</span>
+<span class="k">def</span> <span class="nf">deactivate_proj</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set all projections to inactive.</span>
+
+<span class="sd">    Useful before saving raw data without projectors applied.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    projs : list</span>
+<span class="sd">        The projectors.</span>
+<span class="sd">    copy : bool</span>
+<span class="sd">        Modify projs in place or operate on a copy.</span>
+<span class="sd">    verbose : bool, str, int, or None</span>
+<span class="sd">        If not None, override default verbose level (see :func:`mne.verbose`</span>
+<span class="sd">        and :ref:`Logging documentation &lt;tut_logging&gt;` for more).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    projs : list</span>
+<span class="sd">        The projectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
+        <span class="n">projs</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">projs</span><span class="p">)</span>
+
+    <span class="c1">#   Deactivate the projection items</span>
+    <span class="k">for</span> <span class="n">proj</span> <span class="ow">in</span> <span class="n">projs</span><span class="p">:</span>
+        <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> projection items deactivated&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">projs</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">projs</span>
+
+
+<span class="nd">@verbose</span>
+<span class="k">def</span> <span class="nf">make_eeg_average_ref_proj</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">activate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create an EEG average reference SSP projection vector.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    info : dict</span>
+<span class="sd">        Measurement info.</span>
+<span class="sd">    activate : bool</span>
+<span class="sd">        If True projections are activated.</span>
+<span class="sd">    verbose : bool, str, int, or None</span>
+<span class="sd">        If not None, override default verbose level (see :func:`mne.verbose`</span>
+<span class="sd">        and :ref:`Logging documentation &lt;tut_logging&gt;` for more).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    eeg_proj: instance of Projection</span>
+<span class="sd">        The SSP/PCA projector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;custom_ref_applied&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;A custom reference has been applied to the &#39;</span>
+                           <span class="s1">&#39;data earlier. Please use the &#39;</span>
+                           <span class="s1">&#39;mne.io.set_eeg_reference function to move from &#39;</span>
+                           <span class="s1">&#39;one EEG reference to another.&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Adding average EEG reference projection.&quot;</span><span class="p">)</span>
+    <span class="n">eeg_sel</span> <span class="o">=</span> <span class="n">pick_types</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">meg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">eeg</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ref_meg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                         <span class="n">exclude</span><span class="o">=</span><span class="s1">&#39;bads&#39;</span><span class="p">)</span>
+    <span class="n">ch_names</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ch_names&#39;</span><span class="p">]</span>
+    <span class="n">eeg_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">ch_names</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">eeg_sel</span><span class="p">]</span>
+    <span class="n">n_eeg</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eeg_sel</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n_eeg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot create EEG average reference projector &#39;</span>
+                         <span class="s1">&#39;(no EEG data found)&#39;</span><span class="p">)</span>
+    <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_eeg</span><span class="p">))</span>
+    <span class="n">vec</span> <span class="o">/=</span> <span class="n">n_eeg</span>
+    <span class="n">explained_var</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">eeg_proj_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">col_names</span><span class="o">=</span><span class="n">eeg_names</span><span class="p">,</span> <span class="n">row_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">data</span><span class="o">=</span><span class="n">vec</span><span class="p">,</span> <span class="n">nrow</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="n">n_eeg</span><span class="p">)</span>
+    <span class="n">eeg_proj</span> <span class="o">=</span> <span class="n">Projection</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="n">activate</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">eeg_proj_data</span><span class="p">,</span>
+                          <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Average EEG reference&#39;</span><span class="p">,</span>
+                          <span class="n">kind</span><span class="o">=</span><span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFV_MNE_PROJ_ITEM_EEG_AVREF</span><span class="p">,</span>
+                          <span class="n">explained_var</span><span class="o">=</span><span class="n">explained_var</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">eeg_proj</span>
+
+
+<span class="k">def</span> <span class="nf">_has_eeg_average_ref_proj</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">check_active</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Determine if a list of projectors has an average EEG ref.</span>
+
+<span class="sd">    Optionally, set check_active=True to additionally check if the CAR</span>
+<span class="sd">    has already been applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">proj</span> <span class="ow">in</span> <span class="n">projs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">proj</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Average EEG reference&#39;</span> <span class="ow">or</span>
+                <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;kind&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">FIFF</span><span class="o">.</span><span class="n">FIFFV_MNE_PROJ_ITEM_EEG_AVREF</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">check_active</span> <span class="ow">or</span> <span class="n">proj</span><span class="p">[</span><span class="s1">&#39;active&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">_needs_eeg_average_ref_proj</span><span class="p">(</span><span class="n">info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Determine if the EEG needs an averge EEG reference.</span>
+
+<span class="sd">    This returns True if no custom reference has been applied and no average</span>
+<span class="sd">    reference projection is present in the list of projections.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">eeg_sel</span> <span class="o">=</span> <span class="n">pick_types</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">meg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">eeg</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ref_meg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                         <span class="n">exclude</span><span class="o">=</span><span class="s1">&#39;bads&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">eeg_sel</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+            <span class="ow">not</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;custom_ref_applied&#39;</span><span class="p">]</span> <span class="ow">and</span>
+            <span class="ow">not</span> <span class="n">_has_eeg_average_ref_proj</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]))</span>
+
+
+<span class="nd">@verbose</span>
+<span class="k">def</span> <span class="nf">setup_proj</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">add_eeg_ref</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set up projection for Raw and Epochs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    info : dict</span>
+<span class="sd">        The measurement info.</span>
+<span class="sd">    add_eeg_ref : bool</span>
+<span class="sd">        If True, an EEG average reference will be added (unless one</span>
+<span class="sd">        already exists).</span>
+<span class="sd">    activate : bool</span>
+<span class="sd">        If True projections are activated.</span>
+<span class="sd">    verbose : bool, str, int, or None</span>
+<span class="sd">        If not None, override default verbose level (see :func:`mne.verbose`</span>
+<span class="sd">        and :ref:`Logging documentation &lt;tut_logging&gt;` for more).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    projector : array of shape [n_channels, n_channels]</span>
+<span class="sd">        The projection operator to apply to the data.</span>
+<span class="sd">    info : dict</span>
+<span class="sd">        The modified measurement info (Warning: info is modified inplace).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Add EEG ref reference proj if necessary</span>
+    <span class="k">if</span> <span class="n">add_eeg_ref</span> <span class="ow">and</span> <span class="n">_needs_eeg_average_ref_proj</span><span class="p">(</span><span class="n">info</span><span class="p">):</span>
+        <span class="n">eeg_proj</span> <span class="o">=</span> <span class="n">make_eeg_average_ref_proj</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">activate</span><span class="o">=</span><span class="n">activate</span><span class="p">)</span>
+        <span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">eeg_proj</span><span class="p">)</span>
+
+    <span class="c1"># Create the projector</span>
+    <span class="n">projector</span><span class="p">,</span> <span class="n">nproj</span> <span class="o">=</span> <span class="n">make_projector_info</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nproj</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;The projection vectors do not apply to these &#39;</span>
+                        <span class="s1">&#39;channels&#39;</span><span class="p">)</span>
+        <span class="n">projector</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Created an SSP operator (subspace dimension = </span><span class="si">%d</span><span class="s1">)&#39;</span>
+                    <span class="o">%</span> <span class="n">nproj</span><span class="p">)</span>
+
+    <span class="c1"># The projection items have been activated</span>
+    <span class="k">if</span> <span class="n">activate</span><span class="p">:</span>
+        <span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">activate_proj</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;projs&#39;</span><span class="p">],</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">projector</span><span class="p">,</span> <span class="n">info</span>
+
+
+<span class="k">def</span> <span class="nf">_uniquify_projs</span><span class="p">(</span><span class="n">projs</span><span class="p">,</span> <span class="n">check_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make unique projs.&quot;&quot;&quot;</span>
+    <span class="n">final_projs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">proj</span> <span class="ow">in</span> <span class="n">projs</span><span class="p">:</span>  <span class="c1"># flatten</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">_proj_equal</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">proj</span><span class="p">,</span> <span class="n">check_active</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">final_projs</span><span class="p">):</span>
+            <span class="n">final_projs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
+
+    <span class="n">my_count</span> <span class="o">=</span> <span class="n">count</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">final_projs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">sorter</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sort in a nice way.&quot;&quot;&quot;</span>
+        <span class="n">digits</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">digits</span><span class="p">:</span>
+            <span class="n">sort_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">digits</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sort_idx</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">my_count</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">sort_idx</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;desc&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">final_projs</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">sorter</span><span class="p">)</span> <span class="k">if</span> <span class="n">sort</span> <span class="k">else</span> <span class="n">final_projs</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Jan Freyberg.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

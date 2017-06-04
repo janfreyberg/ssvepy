@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ssvepy.Ssvep &#8212; ssvepy 0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ssvepy.load_ssvep" href="ssvepy.load_ssvep.html" />
+    <link rel="prev" title="API" href="../api.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          ssvepy</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.2</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../example.html">Example Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">ssvepy.Ssvep</a></li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="../api.html" title="Previous Chapter: API"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; API</span>
+    </a>
+  </li>
+  <li>
+    <a href="ssvepy.load_ssvep.html" title="Next Chapter: ssvepy.load_ssvep"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">ssvepy.load_ssvep &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+              <li class="hidden-sm">
+<div id="sourcelink">
+  <a href="../_sources/api/ssvepy.Ssvep.rst.txt"
+     rel="nofollow">Source</a>
+</div></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 content">
+      
+  <div class="section" id="ssvepy-ssvep">
+<h1>ssvepy.Ssvep<a class="headerlink" href="#ssvepy-ssvep" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="ssvepy.Ssvep">
+<em class="property">class </em><code class="descclassname">ssvepy.</code><code class="descname">Ssvep</code><span class="sig-paren">(</span><em>epochs</em>, <em>stimulation_frequency</em>, <em>noisebandwidth=1.0</em>, <em>compute_harmonics=range(2</em>, <em>5)</em>, <em>compute_subharmonics=range(2</em>, <em>5)</em>, <em>compute_intermodulation=range(2</em>, <em>5)</em>, <em>psd=None</em>, <em>freqs=None</em>, <em>fmin=0.1</em>, <em>fmax=50</em>, <em>tmin=None</em>, <em>tmax=None</em>, <em>compute_tfr=False</em>, <em>tfr_method=’rls’</em>, <em>tfr_time_window=0.9</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns epoched EEG/MEG data into epoched evoked frequency data.</p>
+<p>This is the main class in <code class="docutils literal"><span class="pre">ssvepy</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>epochs</strong> (<a class="reference external" href="https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs" title="(in MNE v0.14.1)"><code class="docutils literal"><span class="pre">mne.Epochs</span></code></a>) – An instance of Epoch data.</li>
+<li><strong>stimulation_frequency</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.6/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a><em>, or </em><a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – The frequencies at which the stimulation oscillated.</li>
+<li><strong>noisebandwidth</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – The width of the noise band used to calculate the
+signal-to-noise ratio.</li>
+<li><strong>compute_harmonics</strong> (list | <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Integers of which order of harmonics to compute. Can be None.</li>
+<li><strong>compute_subharmonics</strong> (list | <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Integers of which order of harmonics to compute. Can be None.</li>
+<li><strong>compute_intermodulation</strong> (list | <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Integers of which order of harmonics to compute. Can be None.</li>
+<li><strong>psd</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – If you have already computed the power spectrum with some
+other method, pass it as a parameter.</li>
+<li><strong>freqs</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – If you provide a power spectrum, this has to be the
+frequencies over which it was evaluated.</li>
+<li><strong>fmax</strong> (<em>fmin</em><em>,</em>) – Bounds of frequency band to be evaluated</li>
+<li><strong>tmax</strong> (<em>tmin</em><em>,</em>) – The time points between which power will be evaluated</li>
+<li><strong>compute_tfr</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If you want to evaluate the time-frequency decomposition
+(this applies to the stimulation and non-linear combination
+frequencies only.)</li>
+<li><strong>tfr_method</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Currently, only one method is implemented (‘rls’)</li>
+<li><strong>tfr_time_window</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – The window width for the TFR method.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Attributes</strong></p>
+<dl class="attribute">
+<dt id="ssvepy.Ssvep.stimulation">
+<code class="descname">stimulation</code><a class="headerlink" href="#ssvepy.Ssvep.stimulation" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>obj</em> – a data structure with the following attributes:
+<code class="docutils literal"><span class="pre">stimulation.frequencies</span></code>, <code class="docutils literal"><span class="pre">stimulation.power</span></code>,
+<code class="docutils literal"><span class="pre">stimulation.snr</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">harmonics, subharmonics, intermodulations</code></dt>
+<dd><p><em>obj</em> – non-linear combination of
+your input stimulus frequencies, all with the attributes:
+<code class="docutils literal"><span class="pre">_.frequencies</span></code>, <code class="docutils literal"><span class="pre">_.power</span></code>, <code class="docutils literal"><span class="pre">_.snr</span></code>, <code class="docutils literal"><span class="pre">_.order</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ssvepy.Ssvep.psd">
+<code class="descname">psd</code><a class="headerlink" href="#ssvepy.Ssvep.psd" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a> – the power spectrum</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ssvepy.Ssvep.freqs">
+<code class="descname">freqs</code><a class="headerlink" href="#ssvepy.Ssvep.freqs" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a> – the frequencies at which the psd was evaluated</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ssvepy.Ssvep.snr">
+<code class="descname">snr</code><a class="headerlink" href="#ssvepy.Ssvep.snr" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a> – the signal-to-noise ratio for each frequency in freqs</p>
+</dd></dl>
+
+</dd></dl>
+
+<hr class="docutils" />
+<p class="rubric">Methods</p>
+<p>These are the methods that are added by ssvepy. All methods, including the inherited ones, are at the end of the page.</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#ssvepy.Ssvep.plot_psd" title="ssvepy.Ssvep.plot_psd"><code class="xref py py-obj docutils literal"><span class="pre">plot_psd</span></code></a>([collapse_epochs,&nbsp;collapse_electrodes])</td>
+<td>Plot the power-spectrum that has been calculated for this data.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ssvepy.Ssvep.plot_snr" title="ssvepy.Ssvep.plot_snr"><code class="xref py py-obj docutils literal"><span class="pre">plot_snr</span></code></a>([collapse_epochs,&nbsp;collapse_electrodes])</td>
+<td>Plot the signal-to-noise-ratio-spectrum that has been calculated for this data.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#ssvepy.Ssvep.plot_tfr" title="ssvepy.Ssvep.plot_tfr"><code class="xref py py-obj docutils literal"><span class="pre">plot_tfr</span></code></a>([frequency,&nbsp;collapse_epochs,&nbsp;…])</td>
+<td>Plot the time-course of one of the evoked frequencies.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ssvepy.Ssvep.predict_epochs" title="ssvepy.Ssvep.predict_epochs"><code class="xref py py-obj docutils literal"><span class="pre">predict_epochs</span></code></a>(labels[,&nbsp;trainepochs,&nbsp;…])</td>
+<td>This method is for predicting the labels of trials based on the SSVEP power in a trial.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#ssvepy.Ssvep.predict_timepoints" title="ssvepy.Ssvep.predict_timepoints"><code class="xref py py-obj docutils literal"><span class="pre">predict_timepoints</span></code></a>(labels[,&nbsp;trainingtrials,&nbsp;…])</td>
+<td>This method is for predicting the labels of trials based on the SSVEP power in a trial.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ssvepy.Ssvep.save" title="ssvepy.Ssvep.save"><code class="xref py py-obj docutils literal"><span class="pre">save</span></code></a>(filename)</td>
+<td>Save the data to file.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#ssvepy.Ssvep.topoplot_psd" title="ssvepy.Ssvep.topoplot_psd"><code class="xref py py-obj docutils literal"><span class="pre">topoplot_psd</span></code></a>([collapse_epochs,&nbsp;flims])</td>
+<td>Plot the signal-to-noise-ratio-spectrum across the scalp.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ssvepy.Ssvep.topoplot_snr" title="ssvepy.Ssvep.topoplot_snr"><code class="xref py py-obj docutils literal"><span class="pre">topoplot_snr</span></code></a>([collapse_epochs,&nbsp;flims])</td>
+<td>Plot the signal-to-noise-ratio-spectrum across the scalp.</td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p class="rubric">Methods Details</p>
+<div class="method-div"><dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">ssvepy.</code><code class="descname">Ssvep</code><span class="sig-paren">(</span><em>epochs</em>, <em>stimulation_frequency</em>, <em>noisebandwidth=1.0</em>, <em>compute_harmonics=range(2</em>, <em>5)</em>, <em>compute_subharmonics=range(2</em>, <em>5)</em>, <em>compute_intermodulation=range(2</em>, <em>5)</em>, <em>psd=None</em>, <em>freqs=None</em>, <em>fmin=0.1</em>, <em>fmax=50</em>, <em>tmin=None</em>, <em>tmax=None</em>, <em>compute_tfr=False</em>, <em>tfr_method=’rls’</em>, <em>tfr_time_window=0.9</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Turns epoched EEG/MEG data into epoched evoked frequency data.</p>
+<p>This is the main class in <code class="docutils literal"><span class="pre">ssvepy</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>epochs</strong> (<a class="reference external" href="https://mne-tools.github.io/stable/generated/mne.Epochs.html#mne.Epochs" title="(in MNE v0.14.1)"><code class="docutils literal"><span class="pre">mne.Epochs</span></code></a>) – An instance of Epoch data.</li>
+<li><strong>stimulation_frequency</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.6/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a><em>, or </em><a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – The frequencies at which the stimulation oscillated.</li>
+<li><strong>noisebandwidth</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – The width of the noise band used to calculate the
+signal-to-noise ratio.</li>
+<li><strong>compute_harmonics</strong> (list | <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Integers of which order of harmonics to compute. Can be None.</li>
+<li><strong>compute_subharmonics</strong> (list | <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Integers of which order of harmonics to compute. Can be None.</li>
+<li><strong>compute_intermodulation</strong> (list | <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Integers of which order of harmonics to compute. Can be None.</li>
+<li><strong>psd</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – If you have already computed the power spectrum with some
+other method, pass it as a parameter.</li>
+<li><strong>freqs</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – If you provide a power spectrum, this has to be the
+frequencies over which it was evaluated.</li>
+<li><strong>fmax</strong> (<em>fmin</em><em>,</em>) – Bounds of frequency band to be evaluated</li>
+<li><strong>tmax</strong> (<em>tmin</em><em>,</em>) – The time points between which power will be evaluated</li>
+<li><strong>compute_tfr</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If you want to evaluate the time-frequency decomposition
+(this applies to the stimulation and non-linear combination
+frequencies only.)</li>
+<li><strong>tfr_method</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Currently, only one method is implemented (‘rls’)</li>
+<li><strong>tfr_time_window</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – The window width for the TFR method.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Attributes</strong></p>
+<dl class="attribute">
+<dt>
+<code class="descname">stimulation</code></dt>
+<dd><p><em>obj</em> – a data structure with the following attributes:
+<code class="docutils literal"><span class="pre">stimulation.frequencies</span></code>, <code class="docutils literal"><span class="pre">stimulation.power</span></code>,
+<code class="docutils literal"><span class="pre">stimulation.snr</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">harmonics, subharmonics, intermodulations</code></dt>
+<dd><p><em>obj</em> – non-linear combination of
+your input stimulus frequencies, all with the attributes:
+<code class="docutils literal"><span class="pre">_.frequencies</span></code>, <code class="docutils literal"><span class="pre">_.power</span></code>, <code class="docutils literal"><span class="pre">_.snr</span></code>, <code class="docutils literal"><span class="pre">_.order</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">psd</code></dt>
+<dd><p><a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a> – the power spectrum</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">freqs</code></dt>
+<dd><p><a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a> – the frequencies at which the psd was evaluated</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">snr</code></dt>
+<dd><p><a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a> – the signal-to-noise ratio for each frequency in freqs</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.plot_psd">
+<code class="descname">plot_psd</code><span class="sig-paren">(</span><em>collapse_epochs=True</em>, <em>collapse_electrodes=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.plot_psd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.plot_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the power-spectrum that has been calculated for this data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>collapse_epochs</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – Whether you want to plot the average of all epochs (default),
+or each power-spectrum individually.</li>
+<li><strong>collapse_electrodes</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – Whether you want to plot each electrode individually
+(default), or only the average of all electrodes.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.plot_snr">
+<code class="descname">plot_snr</code><span class="sig-paren">(</span><em>collapse_epochs=True</em>, <em>collapse_electrodes=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.plot_snr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.plot_snr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the signal-to-noise-ratio-spectrum that has been calculated for
+this data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>collapse_epochs</strong> – bool
+Whether you want to plot the average of all epochs (default),
+or each power-spectrum individually.</li>
+<li><strong>collapse_electrodes</strong> – bool
+Whether you want to plot each electrode individually
+(default), or only the average of all electrodes.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.plot_tfr">
+<code class="descname">plot_tfr</code><span class="sig-paren">(</span><em>frequency=’stimulation’</em>, <em>collapse_epochs=True</em>, <em>collapse_electrodes=False</em>, <em>figsize=(7</em>, <em>5)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.plot_tfr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.plot_tfr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the time-course of one of the evoked frequencies.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>frequency</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Which evoked frequency to plot. Either ‘stimulation’,
+‘harmonic’, ‘subharmonic’ or ‘intermodulation’</li>
+<li><strong>collapse_epochs</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – Whether to average over the epochs or not.</li>
+<li><strong>collapse_electrodes</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – Whether to average over electrodes or not.</li>
+<li><strong>figsize</strong> (<em>tup</em>) – Matplotlib figure size.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.predict_epochs">
+<code class="descname">predict_epochs</code><span class="sig-paren">(</span><em>labels</em>, <em>trainepochs=None</em>, <em>method=LogisticRegressionCV(Cs=10</em>, <em>class_weight=None</em>, <em>cv=None</em>, <em>dual=False</em>, <em>fit_intercept=True</em>, <em>intercept_scaling=1.0</em>, <em>max_iter=100</em>, <em>multi_class=’ovr’</em>, <em>n_jobs=1</em>, <em>penalty=’l2’</em>, <em>random_state=None</em>, <em>refit=True</em>, <em>scoring=None</em>, <em>solver=’lbfgs’</em>, <em>tol=0.0001</em>, <em>verbose=0)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.predict_epochs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.predict_epochs" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method is for predicting the labels of trials based on the SSVEP
+power in a trial.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Labels for each trial; needs to be the same length as there are epochs.</li>
+<li><strong>trainepochs</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – A list of trial indices that will be used to train - e.g. range(6) - or an ndarray of booleans of the same size as label. The trials in this index will be used as training trials, and the returned accuracy is based on the trials <em>not</em> used for training.</li>
+<li><strong>method</strong> (<em>sklearn.class</em>) – A training class that conforms to the standard sklearn model (ie has the methods fit(), predict() etc.)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.predict_timepoints">
+<code class="descname">predict_timepoints</code><span class="sig-paren">(</span><em>labels</em>, <em>trainingtrials=None</em>, <em>datatransform=None</em>, <em>method=LogisticRegressionCV(Cs=10</em>, <em>class_weight=None</em>, <em>cv=None</em>, <em>dual=False</em>, <em>fit_intercept=True</em>, <em>intercept_scaling=1.0</em>, <em>max_iter=100</em>, <em>multi_class=’ovr’</em>, <em>n_jobs=1</em>, <em>penalty=’l2’</em>, <em>random_state=None</em>, <em>refit=True</em>, <em>scoring=None</em>, <em>solver=’lbfgs’</em>, <em>tol=0.0001</em>, <em>verbose=0)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.predict_timepoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.predict_timepoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method is for predicting the labels of trials based on the SSVEP
+power in a trial.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.10)"><code class="docutils literal"><span class="pre">numpy.ndarray</span></code></a>) – Labels for each timepoint; the dimensions should match
+(trial x timepoint)</li>
+<li><strong>trainepochs</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – A list of trial indices that will be used to train - e.g. range(6) - or an ndarray of booleans of the same size as label. The trials in this index will be used as training trials, and the returned accuracy is based on the trials <em>not</em> used for training.</li>
+<li><strong>datatransform</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – What transform to do to the TFR data - at the moment, ‘z-score’ works.</li>
+<li><strong>method</strong> (<em>sklearn.class</em>) – A training class that conforms to the standard sklearn model (ie has the methods fit(), predict() etc.)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the data to file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3.6/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name of the file, either bare, or with the file
+extension .hdf5</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.topoplot_psd">
+<code class="descname">topoplot_psd</code><span class="sig-paren">(</span><em>collapse_epochs=True</em>, <em>flims=’stimulation’</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.topoplot_psd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.topoplot_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the signal-to-noise-ratio-spectrum across the scalp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>collapse_epochs</strong> – bool
+Whether you want to plot the average of all epochs (default),
+or each power-spectrum individually.</li>
+<li><strong>flims</strong> – list | str
+Which frequency bands you want to plot. By default, the
+stimulation frequencies will be plotted. Can be limits (eg.
+[6, 8]) or a string referring to an evoked frequency (eg.
+‘stimulation’, ‘harmonic’)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ssvepy.Ssvep.topoplot_snr">
+<code class="descname">topoplot_snr</code><span class="sig-paren">(</span><em>collapse_epochs=True</em>, <em>flims=’stimulation’</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ssvepy/ssvepyepochs.html#Ssvep.topoplot_snr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ssvepy.Ssvep.topoplot_snr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the signal-to-noise-ratio-spectrum across the scalp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>collapse_epochs</strong> – bool
+Whether you want to plot the average of all epochs (default),
+or each power-spectrum individually.</li>
+<li><strong>flims</strong> – list | str
+Which frequency bands you want to plot. By default, the
+stimulation frequencies will be plotted. Can be limits (eg.
+[6, 8]) or a string referring to an evoked frequency (eg.
+‘stimulation’, ‘harmonic’)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div></div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Jan Freyberg.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -20,6 +20,65 @@ EvokedFrequency = collections.namedtuple('EvokedFrequency',
 
 
 class Ssvep(mne.Epochs):
+    """
+    Turns epoched EEG/MEG data into epoched evoked frequency data.
+
+    This is the main class in ``ssvepy``.
+
+    Args
+    ----
+        epochs : :class:`mne:mne.Epochs`
+                An instance of Epoch data.
+        stimulation_frequency : int, float, or list
+                The frequencies at which the stimulation oscillated.
+        noisebandwidth : float
+                The width of the noise band used to calculate the
+                signal-to-noise ratio.
+        compute_harmonics : list | :class:`np:numpy.ndarray`
+                Integers of which order of harmonics to compute. Can be None.
+        compute_subharmonics : list | :class:`np:numpy.ndarray`
+                Integers of which order of harmonics to compute. Can be None.
+        compute_intermodulation : list | :class:`np:numpy.ndarray`
+                Integers of which order of harmonics to compute. Can be None.
+        psd : :class:`np:numpy.ndarray`
+            If you have already computed the power spectrum with some
+            other method, pass it as a parameter.
+        freqs : :class:`np:numpy.ndarray`
+            If you provide a power spectrum, this has to be the
+            frequencies over which it was evaluated.
+        fmin, fmax : float
+            Bounds of frequency band to be evaluated
+        tmin, tmax : float
+            The time points between which power will be evaluated
+        compute_tfr : bool
+            If you want to evaluate the time-frequency decomposition
+            (this applies to the stimulation and non-linear combination
+            frequencies only.)
+        tfr_method : str
+            Currently, only one method is implemented ('rls')
+        tfr_time_window : float
+            The window width for the TFR method.
+
+    **Attributes**
+
+    Attributes
+    ----------
+        stimulation : obj
+            a data structure with the following attributes:
+            ``stimulation.frequencies``, ``stimulation.power``,
+            ``stimulation.snr``
+        harmonics, subharmonics, intermodulations : obj
+            non-linear combination of
+            your input stimulus frequencies, all with the attributes:
+            ``_.frequencies``, ``_.power``, ``_.snr``, ``_.order``
+        psd : :class:`np:numpy.ndarray`
+            the power spectrum
+        freqs : :class:`np:numpy.ndarray`
+            the frequencies at which the psd was evaluated
+        snr : :class:`np:numpy.ndarray`
+            the signal-to-noise ratio for each frequency in freqs
+
+    """
 
     def __init__(self, epochs, stimulation_frequency,
                  noisebandwidth=1.0,
@@ -233,8 +292,25 @@ class Ssvep(mne.Epochs):
 
     # Machine learning routines:
 
-    def predict_timepoints(self, labels, trainingtrials=None,
-                           datatransform=None):
+    def predict_timepoints(
+            self, labels, trainingtrials=None, datatransform=None,
+            method=sklearn.linear_model.LogisticRegressionCV()):
+        """
+        This method is for predicting the labels of trials based on the SSVEP
+        power in a trial.
+
+        Args
+        ----
+            labels : :class:`np:numpy.ndarray`
+                Labels for each timepoint; the dimensions should match
+                (trial x timepoint)
+            trainepochs : list
+                A list of trial indices that will be used to train - e.g. range(6) - or an ndarray of booleans of the same size as label. The trials in this index will be used as training trials, and the returned accuracy is based on the trials *not* used for training.
+            datatransform : str
+                What transform to do to the TFR data - at the moment, 'z-score' works.
+            method : sklearn.class
+                A training class that conforms to the standard sklearn model (ie has the methods fit(), predict() etc.)
+        """
         pass
 
     def predict_epochs(self, labels, trainepochs=None,
@@ -243,13 +319,14 @@ class Ssvep(mne.Epochs):
         This method is for predicting the labels of trials based on the SSVEP
         power in a trial.
 
-        labels should be a list or array of labels for each trial, and should
-        have the same length as there are Epochs.
-
-        trainepochs should be a list of trial indices that will be used to
-        train - e.g. range(6) - or an ndarray of booleans of the same size as
-        labels. The trials in this index will be used as training trials, and
-        the returned accuracy is based on the trials *not* used for training.
+        Args
+        ----
+            labels : :class:`np:numpy.ndarray`
+                Labels for each trial; needs to be the same length as there are epochs.
+            trainepochs : list
+                A list of trial indices that will be used to train - e.g. range(6) - or an ndarray of booleans of the same size as label. The trials in this index will be used as training trials, and the returned accuracy is based on the trials *not* used for training.
+            method : sklearn.class
+                A training class that conforms to the standard sklearn model (ie has the methods fit(), predict() etc.)
         """
 
         # check the method as a fit method
@@ -306,9 +383,24 @@ class Ssvep(mne.Epochs):
 
     # Plotting methods
 
-    def plot_tfr(self, frequency=None, collapse_epochs=True,
+    def plot_tfr(self, frequency='stimulation', collapse_epochs=True,
                  collapse_electrodes=False,
                  figsize=(7, 5)):
+        """
+        Plot the time-course of one of the evoked frequencies.
+
+        Args
+        ----
+            frequency : str
+                Which evoked frequency to plot. Either 'stimulation',
+                'harmonic', 'subharmonic' or 'intermodulation'
+            collapse_epochs : bool
+                Whether to average over the epochs or not.
+            collapse_electrodes : bool
+                Whether to average over electrodes or not.
+            figsize : tup
+                Matplotlib figure size.
+        """
 
         if frequency is None or frequency == 'stimulation':
             y = self.stimulation.tfr
@@ -356,13 +448,15 @@ class Ssvep(mne.Epochs):
         """
         Plot the power-spectrum that has been calculated for this data.
 
-        Parameters:
-        collapse_epochs: True (default) or False
-            Whether you want to plot the average of all epochs (default), or
-            each power-spectrum individually.
-        collapse_electrodes: True or False (default)
-            Whether you want to plot each electrode individually (default), or
-            only the average of all electrodes.
+        Parameters
+        ----------
+            collapse_epochs : bool
+                Whether you want to plot the average of all epochs (default),
+                or each power-spectrum individually.
+            collapse_electrodes : bool
+                Whether you want to plot each electrode individually
+                (default), or only the average of all electrodes.
+
         """
         ydata = self.psd
         # Average over axes if necessary
@@ -379,12 +473,13 @@ class Ssvep(mne.Epochs):
         this data.
 
         Parameters:
-        collapse_epochs: True (default) or False
-            Whether you want to plot the average of all epochs (default), or
-            each power-spectrum individually.
-        collapse_electrodes: True or False (default)
-            Whether you want to plot each electrode individually (default), or
-            only the average of all electrodes.
+            collapse_epochs : bool
+                Whether you want to plot the average of all epochs (default),
+                or each power-spectrum individually.
+            collapse_electrodes : bool
+                Whether you want to plot each electrode individually
+                (default), or only the average of all electrodes.
+
         """
 
         # Construct the SNR spectrum
@@ -443,8 +538,21 @@ class Ssvep(mne.Epochs):
             plt.show()
 
     def topoplot_psd(self, collapse_epochs=True,
-                     flims=None, **kwargs):
+                     flims='stimulation', **kwargs):
+        """
+        Plot the signal-to-noise-ratio-spectrum across the scalp.
 
+        Parameters:
+            collapse_epochs : bool
+                Whether you want to plot the average of all epochs (default),
+                or each power-spectrum individually.
+            flims : list | str
+                Which frequency bands you want to plot. By default, the
+                stimulation frequencies will be plotted. Can be limits (eg.
+                [6, 8]) or a string referring to an evoked frequency (eg.
+                'stimulation', 'harmonic')
+
+        """
         # Find out over which range(s) to collapse:
         fmins, fmaxs = self._get_flims(flims)
 
@@ -472,7 +580,21 @@ class Ssvep(mne.Epochs):
         plt.show()
 
     def topoplot_snr(self, collapse_epochs=True,
-                     flims=None, **kwargs):
+                     flims='stimulation', **kwargs):
+        """
+        Plot the signal-to-noise-ratio-spectrum across the scalp.
+
+        Parameters:
+            collapse_epochs : bool
+                Whether you want to plot the average of all epochs (default),
+                or each power-spectrum individually.
+            flims : list | str
+                Which frequency bands you want to plot. By default, the
+                stimulation frequencies will be plotted. Can be limits (eg.
+                [6, 8]) or a string referring to an evoked frequency (eg.
+                'stimulation', 'harmonic')
+
+        """
 
         # Find out over which range(s) to collapse:
         fmins, fmaxs = self._get_flims(flims)
@@ -582,10 +704,11 @@ class Ssvep(mne.Epochs):
         """
         Save the data to file.
 
-        - **parameters**::
-
-            :filename: The name of the file, either bare, or with the file
-            extension .hdf5
+        Parameters
+        ----------
+            filename : str
+                The name of the file, either bare, or with the file
+                extension .hdf5
         """
         if filename[-5:] != '.hdf5':
             filename = filename + '.hdf5'
@@ -641,6 +764,15 @@ class Ssvep(mne.Epochs):
 
 
 def load_ssvep(filename):
+    """
+    Load an hdf5 file containing ssvepy.Ssvep data (saved with Ssvep.save()).
+
+    Args
+    ----
+        filename : str
+            The name of the file. If the string does not end in .hdf5, this
+            will be added for you.
+    """
     # define namedtuple as a go-between
     DummyEpoch = collections.namedtuple('DummyEpoch', field_names=['info'])
 

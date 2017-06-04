@@ -22,6 +22,15 @@
 # sys.path.insert(0, os.path.abspath('.'))
 import sphinx_bootstrap_theme
 
+from sphinx.ext.autosummary import Autosummary
+from sphinx.ext.autosummary import get_documenter
+from docutils.parsers.rst import directives
+from sphinx.util.inspect import safe_getattr
+
+from sphinx.ext.autodoc import ClassDocumenter
+
+import re
+
 
 # -- General configuration ------------------------------------------------
 
@@ -39,7 +48,10 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
               'sphinx.ext.intersphinx',
-              'nbsphinx']
+              'nbsphinx',
+              'sphinx.ext.napoleon',
+              'sphinx.ext.autosummary']
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -49,6 +61,11 @@ templates_path = ['_templates']
 #
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
+
+# whether there will be files for each autosummarised doc
+autosummary_generate = True
+autoclass_content = 'neither'
+# autodoc_default_flags = ['members']
 
 # The master toctree document.
 master_doc = 'index'
@@ -167,8 +184,10 @@ texinfo_documents = [
 
 # -- Options for intersphinx mappint --------------------------------------
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3.4', None),
-                       'mne': ('https://mne-tools.github.io/stable', None)}
+intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
+                       'mne': ('https://mne-tools.github.io/stable', None),
+                       'np': ('https://docs.scipy.org/doc/numpy-1.10.0/',
+                              None)}
 
 
 # -- Options for Epub output ----------------------------------------------
@@ -190,3 +209,65 @@ epub_copyright = copyright
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+
+# -- Extend autosummary ---------------------------------------------------
+
+
+class AutoAutoSummary(Autosummary):
+
+    option_spec = {
+        'methods': directives.unchanged,
+        'attributes': directives.unchanged
+    }
+
+    required_arguments = 1
+
+    @staticmethod
+    def get_members(obj, typ, include_public=None):
+        if not include_public:
+            include_public = []
+        items = []
+        for name in dir(obj):
+            try:
+                documenter = get_documenter(safe_getattr(obj, name), obj)
+            except AttributeError:
+                continue
+            if documenter.objtype == typ:
+                items.append(name)
+        public = [x for x in items
+                  if x in include_public
+                  or not x.startswith('_')]
+        return public, items
+
+    def run(self):
+        clazz = self.arguments[0]
+        try:
+            (module_name, class_name) = clazz.rsplit('.', 1)
+            if '.' in class_name:
+                (class_name, method_name) = class_name.rsplit('.', 1)
+            else:
+                method_name = None
+            m = __import__(module_name, globals(), locals(), [class_name])
+            c = getattr(m, class_name)
+            if 'methods' in self.options:
+                _, methods = self.get_members(c, 'method', ['__init__'])
+                _, supmethods = self.get_members(super(c), 'method',
+                                                 ['__init__'])
+
+                self.content = ["~%s.%s" % (clazz, method)
+                                for method in methods
+                                if not method.startswith('_')
+                                and method in c.__dict__]
+            if 'attributes' in self.options:
+                _, attribs = self.get_members(c, 'attribute')
+                self.content = ["~%s.%s" % (
+                    clazz, attrib) for attrib in attribs if not attrib.startswith('_')]
+        finally:
+            return super(AutoAutoSummary, self).run()
+
+
+def setup(app):
+    app.add_stylesheet('css/custom.css')
+    app.add_directive('autoautosummary', AutoAutoSummary)
+    # app.add_autodocumenter(CleanClassDocumenter)
