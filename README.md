@@ -8,6 +8,10 @@ A package to analyse MNE-formatted EEG data for steady-state visually evoked pot
 
 As always with pip packages, you can install a "development" version of this package by (forking and) cloning the git repository and installing it via `pip install -e /path/to/package`. Please do open a pull request if you make improvements.
 
+### Documentation:
+
+The docs for this package are at http://www.janfreyberg.com/ssvepy. There, you'll find the API and an example notebook.
+
 ### Usage:
 
 You should load, preprocess and epoch your data using [MNE](https://github.com/mne-tools/mne-python).
