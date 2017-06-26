@@ -492,16 +492,27 @@ class Ssvep(mne.Epochs):
                                            collapse_electrodes][x]]))
         self._plot_spectrum(ydata, **kwargs)
 
-    def _plot_spectrum(self, ydata, figsize=(15, 7), show=True):
+    def _plot_spectrum(self, ydata, figsize=(15, 7), show=True,
+                       fmin=None, fmax=None):
         """
         Helper function to plot different spectra
         """
+
+        if fmin is None:
+            fmin = np.min(self.freqs)
+        if fmax is None:
+            fmax = np.max(self.freqs)
+
         # Make sure frequency data is the first index
         ydata = np.transpose(
             ydata, axes=([ydata.shape.index(self.freqs.size)] +
                          [dim for dim, _ in enumerate(ydata.shape)
                           if dim != ydata.shape.index(self.freqs.size)])
         )
+        # apply the frequency limits
+        ydata = ydata[(self.freqs > fmin) & (self.freqs < fmax), ...]
+        xdata = self.freqs[(self.freqs > fmin) & (self.freqs < fmax)]
+
         # Start figure
         plt.figure(figsize=figsize)
         xmarks = np.concatenate([a.flatten() for a in
@@ -512,9 +523,9 @@ class Ssvep(mne.Epochs):
                                  if np.any(a)]).tolist()
         # If we didn't collapse over epochs, split the data
         if ydata.ndim <= 2:
-            plt.plot(self.freqs, ydata, color='blue', alpha=0.3)
+            plt.plot(xdata, ydata, color='blue', alpha=0.3)
             if ydata.ndim > 1:
-                plt.plot(self.freqs, ydata.mean(axis=1), color='red')
+                plt.plot(xdata, ydata.mean(axis=1), color='red')
             for xval in xmarks:
                 plt.axvline(xval, linestyle='--', color='gray')
             plt.xticks(xmarks)
@@ -526,9 +537,9 @@ class Ssvep(mne.Epochs):
                             np.ceil(len(ydatas) /
                                     np.ceil(np.sqrt(len(ydatas)))),
                             idx + 1)
-                plt.plot(self.freqs, ydata, color='blue', alpha=0.3)
+                plt.plot(xdata, ydata, color='blue', alpha=0.3)
                 if ydata.ndim > 1:
-                    plt.plot(self.freqs, ydata.mean(axis=1), color='red')
+                    plt.plot(xdata, ydata.mean(axis=1), color='red')
                 for xval in xmarks:
                     plt.axvline(xval, linestyle='--', color='gray')
                 plt.xticks(xmarks)
@@ -659,7 +670,7 @@ class Ssvep(mne.Epochs):
         """
         # Get the montage
         pos = mne.channels.layout._auto_topomap_coords(
-            self.info, range(len(self.ch_names))
+            self.info, mne.pick_types(self.info, meg=True, eeg=True)
         )
         if type(topodata) is not list:
             topodata = [topodata]
