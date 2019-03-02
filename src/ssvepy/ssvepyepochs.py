@@ -97,6 +97,7 @@ class Ssvep(mne.Epochs):
     ):
 
         self.info = deepcopy(epochs.info)
+        self.events = epochs.events
 
         self.noisebandwidth = noisebandwidth
         self.psd = psd
