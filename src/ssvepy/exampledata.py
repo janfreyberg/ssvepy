@@ -18,5 +18,5 @@ nepochs = 20
 # dummyssvep = ssvepy.Ssvep(epochs, stimfreq)
 
 rootpath, _ = os.path.split(__file__)
-epochfile = os.path.join(rootpath, 'exampledata', 'example-epo.fif')
+epochfile = os.path.join(rootpath, "exampledata", "example-epo.fif")
 epoch_example = mne.read_epochs(epochfile)
