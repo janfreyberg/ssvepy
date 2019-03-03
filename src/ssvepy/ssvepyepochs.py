@@ -958,15 +958,12 @@ def load_ssvep(filename):
 
     # Load the evoked frequency structures and try to use them:
     for ftype in ["stimulation", "harmonic", "subharmonic", "intermodulation"]:
-        try:
-            ssvep.__setattr__(
-                ftype,
-                EvokedFrequency(
-                    **{key: value.value for key, value in f[ftype].items()}
-                ),
-            )
-        except:
-            pass
+        ssvep.__setattr__(
+            ftype,
+            EvokedFrequency(
+                **{key: value.value for key, value in f[ftype].items()}
+            ),
+        )
     # close the file:
     f.close()
     # and return the loaded data:
