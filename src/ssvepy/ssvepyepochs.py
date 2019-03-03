@@ -220,20 +220,17 @@ class Ssvep(mne.Epochs):
 
     def _compute_tfr(
         self,
-        epoch,
-        freq,
-        tfr_method="rls",
-        window_width=1.2,
-        filter_lambda=1.0,
+        epoch: mne.Epochs,
+        freq: Union[np.ndarray, xr.DataArray, pd.Index],
+        tfr_method: str = "rls",
+        window_width: float = 1.2,
+        filter_lambda: float = 1.0,
     ):
         """
         Work out the time-frequency composition of different frequencies.
         """
 
-        data = epoch.get_data()
-
-        if type(freq) is not np.ndarray:
-            raise TypeError("Frequencies need to provided in a numpy array.")
+        data: np.ndarray = epoch.get_data()
 
         samplefreq = epoch.info["sfreq"]
         n_window = int(samplefreq * window_width)
@@ -244,53 +241,85 @@ class Ssvep(mne.Epochs):
 
         t = np.arange(data.shape[-1]) / samplefreq
 
+        channels = mne.pick_types(self.info, meg=True, eeg=True)
+        data = data[:, channels, :]
         # create a data structure that matches MNE standard TFR shape
-        tfr_data = np.zeros(
-            (data.shape[0], data.shape[1], freq.size, data.shape[2])
+        tfr_data = xr.DataArray(
+            np.zeros((data.shape[0], channels.size, freq.size, data.shape[2])),
+            coords=[
+                ("epoch", self.psd.coords["epoch"]),
+                ("channel", self.psd.coords["channel"]),
+                ("frequency", freq),
+                ("time", np.arange(data.shape[2]) / samplefreq),
+            ],
         )
 
         if tfr_method == "rls":
             # this implementation follows Sucharit Katyal's code
             for fi, f in enumerate(freq.flatten()):
-                s = -np.sin(2 * np.pi * f * t)
-                c = np.cos(2 * np.pi * f * t)
-                # Create the sin and cosine
-                for trial in range(data.shape[0]):
-                    for electrode in range(data.shape[1]):
-                        y = data[trial, electrode, :]
-                        # obtain cosine and since components
-                        hc = lfilter(lambdafilter, 1, y * c)
-                        hs = lfilter(lambdafilter, 1, y * s)
-                        # lambda correction, if necessary
+                sin_component = -np.sin(2 * np.pi * f * t)
+                cosin_component = np.cos(2 * np.pi * f * t)
+                h_cosin = lfilter(lambdafilter, 1, data * cosin_component)
+                h_sin = lfilter(lambdafilter, 1, data * cosin_component)
                         if filter_lambda < 1:
-                            hc = hc / lfilter(lambdafilter, 1, c ** 2)
-                            hs = hs / lfilter(lambdafilter, 1, s ** 2)
+                    h_cosin = h_cosin / lfilter(
+                        lambdafilter, 1, cosin_component ** 2
+                    )
+                    h_sin = h_sin / lfilter(
+                        lambdafilter, 1, sin_component ** 2
+                    )
                         # combine the data to get envelope
-                        a = np.abs(hc + 1j * hs)
-                        # shift left, pad zero
-                        a = np.roll(a, -n_window // 2)
-                        a[(-n_window // 2) : -1] = np.nan
-                        # smooth with gaussian
-                        a[0 : (-n_window // 2)] = gaussian_filter(
-                            a[0 : (-n_window // 2)], n_window // 10
-                        )
-                        # set in tfr_data
-                        tfr_data[trial, electrode, fi, :] = a
+                a = np.abs(h_cosin + 1j * h_sin)
+                # shift left, pad nan
+                a = np.roll(a, -n_window // 2, axis=-1)
+                a[:, :, (-n_window // 2) :] = np.nan
+                a = gaussian_filter1d(a[:, :, :], n_window // 10)
+                tfr_data[:, :, fi, :] = a
+
         else:
             raise NotImplementedError("Only RLS is available so far.")
         return tfr_data
 
     # Helper functions to compute non-linear frequency combos:
+    def _compute_harmonics(
+        self,
+        epochs: mne.Epochs,
+        orders: Sequence,
+        compute_tfr: bool,
+        tfr_time_window,
+        type_: str = "harmonics",
+    ) -> EvokedFrequency:
+        """
+        Calculate the harminc frequency and return an EvokedFrequency named
+        tuple.
+        """
+        if type_ == "harmonics":
+            calculation_function = frequencymaths.compute_harmonics
+        elif type_ == "subharmonics":
+            calculation_function = frequencymaths.compute_subharmonics
+        elif type_ == "intermodulation":
+            calculation_function = frequencymaths.compute_harmonics
 
-    def _compute_harmonics(self, orders):
-        """
-        Wrapper function around the compute_harmonics function in frequencymaths
-        """
-        return frequencymaths.compute_harmonics(
+        frequencies, orders = calculation_function(
             self.stimulation.frequencies,
             fmin=self.fmin,
             fmax=self.fmax,
             orders=orders,
+        )
+        frequencies = frequencies.flatten()
+
+        return EvokedFrequency(
+            frequencies=frequencies,
+            orders=orders,
+            power=self._get_amp(frequencies),
+            snr=self._get_snr(frequencies),
+            tfr=(
+                self._compute_tfr(
+                    epochs, frequencies, window_width=tfr_time_window
+                )
+                if compute_tfr
+                else None
+            ),
         )
 
     def _compute_subharmonics(self, orders):
