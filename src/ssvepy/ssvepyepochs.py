@@ -364,12 +364,21 @@ class Ssvep(mne.Epochs):
             labels : :class:`np:numpy.ndarray`
                 Labels for each timepoint; the dimensions should match
                 (trial x timepoint)
+
             trainepochs : list
-                A list of trial indices that will be used to train - e.g. range(6) - or an ndarray of booleans of the same size as label. The trials in this index will be used as training trials, and the returned accuracy is based on the trials *not* used for training.
+                A list of trial indices that will be used to train - e.g.
+                range(6) - or an ndarray of booleans of the same size as label.
+                The trials in this index will be used as training trials, and
+                the returned accuracy is based on the trials *not* used for
+                training.
             datatransform : str
-                What transform to do to the TFR data - at the moment, 'z-score' works.
+                What transform to do to the TFR data - at the moment, 'z-score'
+                works.
+
             method : sklearn.class
-                A training class that conforms to the standard sklearn model (ie has the methods fit(), predict() etc.)
+                A training class that conforms to the standard sklearn model
+                (ie has the methods fit(), predict() etc.)
+
         """
         pass
 
@@ -386,11 +395,17 @@ class Ssvep(mne.Epochs):
         Args
         ----
             labels : :class:`np:numpy.ndarray`
-                Labels for each trial; needs to be the same length as there are epochs.
+                Labels for each trial; needs to be the same length as there are
+                epochs.
             trainepochs : list
-                A list of trial indices that will be used to train - e.g. range(6) - or an ndarray of booleans of the same size as label. The trials in this index will be used as training trials, and the returned accuracy is based on the trials *not* used for training.
+                A list of trial indices that will be used to train - e.g.
+                range(6) - or an ndarray of booleans of the same size as label.
+                The trials in this index will be used as training trials, and
+                the returned accuracy is based on the trials *not* used for
+                training.
             method : sklearn.class
-                A training class that conforms to the standard sklearn model (ie has the methods fit(), predict() etc.)
+                A training class that conforms to the standard sklearn model
+                (ie has the methods fit(), predict() etc.)
         """
 
         # check the method as a fit method
