@@ -186,45 +186,37 @@ class Ssvep(mne.Epochs):
             )
 
     # Helper functions to get specific frequencies:
-
-    def _get_snr(self, freqs):
+    def _get_snr(self, frequencies):
         """
         Helper function to work out the SNR of a given frequency
         """
         snr = []
-        for freq in freqs.flat:
-            stimband = (self.freqs <= freq + self.frequency_resolution) & (
-                self.freqs >= freq - self.frequency_resolution
+        for frequency in frequencies:
+            signal_slice = slice(
+                (frequency - self.frequency_resolution),
+                (frequency + self.frequency_resolution),
+            )
+            stimband = self.psd.coords["frequency"].loc[signal_slice]
+            noise_slice = slice(
+                frequency - self.noisebandwidth,
+                frequency + self.noisebandwidth,
             )
             noiseband = (
-                (self.freqs <= freq + self.noisebandwidth)
-                & (self.freqs >= freq - self.noisebandwidth)
-                & ~stimband
+                self.psd.coords["frequency"]
+                .loc[noise_slice]
+                .drop(stimband, dim="frequency")
             )
             snr.append(
-                self.psd[..., stimband].mean(axis=-1)
-                / self.psd[..., noiseband].mean(axis=-1)
+                self.psd.loc[:, :, stimband].mean("frequency")
+                / self.psd.loc[:, :, noiseband].mean("frequency")
             )
-        snr = np.stack(snr, axis=-1) if len(snr) > 1 else snr[0]
-        return snr
+        return xr.concat(snr, dim=pd.Index(frequencies, name="frequency"))
 
     def _get_amp(self, freqs):
         """
         Helper function to get the freq-smoothed amplitude of a frequency
         """
-        return np.stack(
-            [
-                self.psd[
-                    ...,
-                    (
-                        (self.freqs <= freq + self.frequency_resolution)
-                        & (self.freqs >= freq - self.frequency_resolution)
-                    ),
-                ].mean(axis=-1)
-                for freq in freqs.flat
-            ],
-            axis=-1,
-        )
+        return self.psd.sel(frequency=freqs, method="nearest")
 
     def _compute_tfr(
         self,
