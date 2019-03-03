@@ -143,7 +143,7 @@ class Ssvep(mne.Epochs):
 
         stimulation_frequencies = np.array(
             stimulation_frequencies, dtype=float
-                )
+        )
         # Use a custom named tuple for the frequency-related data
         self.stimulation = EvokedFrequency(
             frequencies=stimulation_frequencies,
@@ -168,7 +168,7 @@ class Ssvep(mne.Epochs):
                 compute_tfr,
                 tfr_time_window,
                 type_="harmonics",
-                    )
+            )
         if compute_subharmonics is not None:
             self.harmonic = self._compute_harmonics(
                 epochs,
@@ -262,14 +262,14 @@ class Ssvep(mne.Epochs):
                 cosin_component = np.cos(2 * np.pi * f * t)
                 h_cosin = lfilter(lambdafilter, 1, data * cosin_component)
                 h_sin = lfilter(lambdafilter, 1, data * cosin_component)
-                        if filter_lambda < 1:
+                if filter_lambda < 1:
                     h_cosin = h_cosin / lfilter(
                         lambdafilter, 1, cosin_component ** 2
                     )
                     h_sin = h_sin / lfilter(
                         lambdafilter, 1, sin_component ** 2
                     )
-                        # combine the data to get envelope
+                # combine the data to get envelope
                 a = np.abs(h_cosin + 1j * h_sin)
                 # shift left, pad nan
                 a = np.roll(a, -n_window // 2, axis=-1)
@@ -870,8 +870,8 @@ class Ssvep(mne.Epochs):
             filename = filename + ".hdf5"
         f = h5py.File(filename, "w")  # open a file
         # First the necessary data:
-        psd = f.create_dataset("psd", data=self.psd)
-        freqs = f.create_dataset("freqs", data=self.freqs)
+        f.create_dataset("psd", data=self.psd)
+        f.create_dataset("freqs", data=self.freqs)
         # whack in the info structure:
         info = f.create_group("info")
         info.attrs["infostring"] = np.void(pickle.dumps(self.info))
