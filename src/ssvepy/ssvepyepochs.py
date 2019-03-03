@@ -555,17 +555,10 @@ class Ssvep(mne.Epochs):
 
         """
         ydata = self.psd
-        # Average over axes if necessary
-        ydata = ydata.mean(
-            axis=tuple(
-                [
-                    x
-                    for x in range(2)
-                    if [collapse_epochs, collapse_electrodes][x]
-                ]
-            )
-        )
-
+        if collapse_electrodes:
+            ydata = ydata.mean("channel")
+        if collapse_epochs:
+            ydata = ydata.mean("epoch")
         self._plot_spectrum(ydata, **kwargs)
 
     def plot_snr(
@@ -586,20 +579,11 @@ class Ssvep(mne.Epochs):
         """
 
         # Construct the SNR spectrum
-        ydata = np.stack(
-            [self._get_snr(freq) for idx, freq in enumerate(self.freqs)],
-            axis=-1,
-        )
-        # Average over axes if necessary
-        ydata = ydata.mean(
-            axis=tuple(
-                [
-                    x
-                    for x in range(2)
-                    if [collapse_epochs, collapse_electrodes][x]
-                ]
-            )
-        )
+        ydata = self.snr
+        if collapse_electrodes:
+            ydata = ydata.mean("channel")
+        if collapse_epochs:
+            ydata = ydata.mean("epoch")
         self._plot_spectrum(ydata, **kwargs)
 
     def _plot_spectrum(
