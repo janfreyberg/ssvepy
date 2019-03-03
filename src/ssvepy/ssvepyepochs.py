@@ -141,6 +141,8 @@ class Ssvep(mne.Epochs):
 
         self.frequency_resolution = self.freqs[1] - self.freqs[0]
 
+        self.snr = self._get_snr(self.freqs)
+
         stimulation_frequencies = np.array(
             stimulation_frequencies, dtype=float
         )
