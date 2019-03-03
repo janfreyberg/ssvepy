@@ -1,8 +1,10 @@
 """
 Some helper functions to do frequency maths
 """
+from typing import Sequence, Optional
 import numpy as np
 import itertools
+import math
 
 
 def compute_intermodulation(
@@ -38,24 +40,21 @@ def compute_intermodulation(
     return np.array(output), np.array(orderlist)
 
 
-def compute_harmonics(frequencies, fmin=0.1, fmax=50, orders=range(2, 5)):
-    if not orders:
-        return None, None
+def compute_harmonics(
+    frequencies: Sequence,
+    fmin: float = 0.1,
+    fmax: float = 50,
+    orders: Optional[Sequence] = range(2, 5),
+):
 
-    if type(orders) is bool:
-        orders = [o for o in range(2, 6)]
-    elif type(orders) is int:
-        orders = [o for o in range(2, orders)]
-    try:
-        freqs = [
-            [n * f for n in orders if n * f <= fmax and n * f >= fmin]
-            for f in frequencies
-        ]
-    except:
-        freqs = [
-            [n * f for n in orders if n * f <= fmax and n * f >= fmin]
-            for f in [frequencies]
-        ]
+    if orders is None:
+        # compute the maximum number of harmonics
+        orders = range(2, math.ceil(fmax / max(frequencies)))
+
+    freqs = [
+        [n * f for n in orders if n * f <= fmax and n * f >= fmin]
+        for f in frequencies
+    ]
 
     return np.array(freqs), np.array(orders)
 
