@@ -91,14 +91,14 @@ class Ssvep(mne.Epochs):
         compute_subharmonics: Optional[Sequence] = range(2, 5),
         compute_intermodulation: Optional[Sequence] = range(2, 5),
         psd: Optional[Union[np.ndarray, xr.DataArray]] = None,
-        freqs=None,
-        fmin=0.1,
-        fmax=50,
-        tmin=None,
-        tmax=None,
-        compute_tfr=False,
-        tfr_method="rls",
-        tfr_time_window=0.9,
+        freqs: np.ndarray = None,
+        fmin: float = 0.1,
+        fmax: float = 50,
+        tmin: float = None,
+        tmax: float = None,
+        compute_tfr: bool = False,
+        tfr_method: str = "rls",
+        tfr_time_window: float = 0.9,
     ):
 
         self.info = deepcopy(epochs.info)
