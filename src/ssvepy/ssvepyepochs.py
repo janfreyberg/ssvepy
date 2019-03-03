@@ -189,7 +189,7 @@ class Ssvep(mne.Epochs):
             )
 
     # Helper functions to get specific frequencies:
-    def _get_snr(self, frequencies):
+    def _get_snr(self, frequencies: np.ndarray):
         """
         Helper function to work out the SNR of a given frequency
         """
@@ -213,7 +213,12 @@ class Ssvep(mne.Epochs):
                 self.psd.loc[:, :, stimband].mean("frequency")
                 / self.psd.loc[:, :, noiseband].mean("frequency")
             )
-        return xr.concat(snr, dim=pd.Index(frequencies, name="frequency"))
+
+        return (
+            xr.concat(snr, dim=xr.DataArray(frequencies, name="frequency"))
+            .rename({"dim_0": "frequency"})
+            .transpose("epoch", "channel", "frequency")
+        )
 
     def _get_amp(self, freqs):
         """
