@@ -8,9 +8,10 @@ import h5py
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
+import pandas as pd
 import sklearn.linear_model
 import xarray as xr
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import lfilter
 
 from . import frequencymaths
