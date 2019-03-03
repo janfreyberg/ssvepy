@@ -766,12 +766,18 @@ class Ssvep(mne.Epochs):
 
     def _get_flims(self, flims):
         """
-        Helper function that turns strings or lists into helpful
+        Helper function that turns strings or lists into limits
         """
         if flims is not None:
             if type(flims) is str:
-                fmins = self.__getattribute__(flims).frequencies - 0.1
-                fmaxs = self.__getattribute__(flims).frequencies + 0.1
+                fmins = (
+                    self.__getattribute__(flims).frequencies
+                    - self.frequency_resolution
+                )
+                fmaxs = (
+                    self.__getattribute__(flims).frequencies
+                    + self.frequency_resolution
+                )
             elif type(flims) is int or type(flims) is float:
                 fmins = np.array([flims - 0.1])
                 fmaxs = np.array([flims + 0.1])
@@ -845,7 +851,8 @@ class Ssvep(mne.Epochs):
         # fig.subplots_adjust(right=0.8)
         # cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         # fig.colorbar(im, cax=cbar_ax)
-        return fig
+        # plt.tight_layout()
+        return fig, axes
 
     # File I/O and printing
 
