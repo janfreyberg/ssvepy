@@ -2,7 +2,7 @@ import collections
 import inspect
 import pickle
 from copy import deepcopy
-from typing import Sequence
+from typing import Sequence, Optional, Union
 
 import h5py
 import matplotlib.pyplot as plt
@@ -87,10 +87,10 @@ class Ssvep(mne.Epochs):
         epochs: mne.Epochs,
         stimulation_frequencies: Sequence,
         noisebandwidth: float = 1.0,
-        compute_harmonics=range(2, 5),
-        compute_subharmonics=range(2, 5),
-        compute_intermodulation=range(2, 5),
-        psd=None,
+        compute_harmonics: Optional[Sequence] = range(2, 5),
+        compute_subharmonics: Optional[Sequence] = range(2, 5),
+        compute_intermodulation: Optional[Sequence] = range(2, 5),
+        psd: Optional[Union[np.ndarray, xr.DataArray]] = None,
         freqs=None,
         fmin=0.1,
         fmax=50,
