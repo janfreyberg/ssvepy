@@ -160,66 +160,29 @@ class Ssvep(mne.Epochs):
             ),
         )
 
-        harmfreqs, harmorder = self._compute_harmonics(compute_harmonics)
-        self.harmonic = (
-            EvokedFrequency(
-                frequencies=harmfreqs,
-                orders=harmorder,
-                power=self._get_amp(harmfreqs),
-                snr=self._get_snr(harmfreqs),
-                tfr=(
-                    self._compute_tfr(
-                        epochs, harmfreqs, window_width=tfr_time_window
+        if compute_harmonics is not None:
+            self.harmonic = self._compute_harmonics(
+                epochs,
+                compute_harmonics,
+                compute_tfr,
+                tfr_time_window,
+                type_="harmonics",
                     )
-                    if compute_tfr
-                    else None
-                ),
+        if compute_subharmonics is not None:
+            self.harmonic = self._compute_harmonics(
+                epochs,
+                compute_harmonics,
+                compute_tfr,
+                tfr_time_window,
+                type_="subharmonics",
             )
-            if compute_harmonics
-            else EvokedFrequency(
-                frequencies=None, orders=None, power=None, snr=None, tfr=None
-            )
-        )
-        subfreqs, suborder = self._compute_subharmonics(compute_subharmonics)
-        self.subharmonic = (
-            EvokedFrequency(
-                frequencies=subfreqs,
-                orders=suborder,
-                power=self._get_amp(subfreqs),
-                snr=self._get_snr(subfreqs),
-                tfr=(
-                    self._compute_tfr(
-                        epochs, subfreqs, window_width=tfr_time_window
-                    )
-                    if compute_tfr
-                    else None
-                ),
-            )
-            if compute_subharmonics
-            else EvokedFrequency(
-                frequencies=None, orders=None, power=None, snr=None, tfr=None
-            )
-        )
-        if compute_intermodulation and stimulation_frequencies.size > 1:
-            interfreqs, interorder = self._compute_intermodulations(
-                compute_intermodulation
-            )
-            self.intermodulation = EvokedFrequency(
-                frequencies=interfreqs,
-                orders=interorder,
-                power=self._get_amp(interfreqs),
-                snr=self._get_snr(interfreqs),
-                tfr=(
-                    self._compute_tfr(
-                        epochs, interfreqs, window_width=tfr_time_window
-                    )
-                    if compute_tfr
-                    else None
-                ),
-            )
-        else:
-            self.intermodulation = EvokedFrequency(
-                frequencies=None, orders=None, power=None, snr=None, tfr=None
+        if compute_intermodulation is not None:
+            self.harmonic = self._compute_harmonics(
+                epochs,
+                compute_harmonics,
+                compute_tfr,
+                tfr_time_window,
+                type_="intermodulation",
             )
 
     # Helper functions to get specific frequencies:
