@@ -2,6 +2,7 @@ import collections
 import inspect
 import pickle
 from copy import deepcopy
+from typing import Sequence
 
 import h5py
 import matplotlib.pyplot as plt
@@ -82,9 +83,9 @@ class Ssvep(mne.Epochs):
 
     def __init__(
         self,
-        epochs,
-        stimulation_frequency,
-        noisebandwidth=1.0,
+        epochs: mne.Epochs,
+        stimulation_frequencies: Sequence,
+        noisebandwidth: float = 1.0,
         compute_harmonics=range(2, 5),
         compute_subharmonics=range(2, 5),
         compute_intermodulation=range(2, 5),
@@ -123,26 +124,36 @@ class Ssvep(mne.Epochs):
                 epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax
             )
 
+        # turn into a labelled array
+        self.psd = xr.DataArray(
+            self.psd,
+            dims=["epoch", "channels", "frequencies"],
+            coords={
+                "epoch": self.events[:, 2],
+                "channels": [
+                    epochs.ch_names[a]
+                    for a in mne.pick_types(epochs.info, meg=True, eeg=True)
+                ],
+                "frequencies": self.freqs,
+            },
+        )
+
         self.frequency_resolution = self.freqs[1] - self.freqs[0]
 
-        if type(stimulation_frequency) is not np.ndarray:
-            try:
-                stimulation_frequency = np.array(
-                    [x for x in stimulation_frequency], dtype=float
-                )
-            except:
-                stimulation_frequency = np.array(
-                    stimulation_frequency, dtype=float
+        stimulation_frequencies = np.array(
+            stimulation_frequencies, dtype=float
                 )
         # Use a custom named tuple for the frequency-related data
         self.stimulation = EvokedFrequency(
-            frequencies=stimulation_frequency,
-            orders=np.ones(stimulation_frequency.shape, dtype=float),
-            power=self._get_amp(stimulation_frequency),
-            snr=self._get_snr(stimulation_frequency),
+            frequencies=stimulation_frequencies,
+            orders=np.ones(stimulation_frequencies.shape, dtype=float),
+            power=self._get_amp(stimulation_frequencies),
+            snr=self._get_snr(stimulation_frequencies),
             tfr=(
                 self._compute_tfr(
-                    epochs, stimulation_frequency, window_width=tfr_time_window
+                    epochs,
+                    stimulation_frequencies,
+                    window_width=tfr_time_window,
                 )
                 if compute_tfr
                 else None
@@ -189,7 +200,7 @@ class Ssvep(mne.Epochs):
                 frequencies=None, orders=None, power=None, snr=None, tfr=None
             )
         )
-        if compute_intermodulation and stimulation_frequency.size > 1:
+        if compute_intermodulation and stimulation_frequencies.size > 1:
             interfreqs, interorder = self._compute_intermodulations(
                 compute_intermodulation
             )
