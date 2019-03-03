@@ -1,15 +1,18 @@
+import collections
+import inspect
+import pickle
+from copy import deepcopy
+
+import h5py
+import matplotlib.pyplot as plt
 import mne
 import numpy as np
-from copy import deepcopy
-import collections
-import matplotlib.pyplot as plt
-from . import frequencymaths
-import h5py
-import pickle
-from scipy.signal import lfilter
-from scipy.ndimage.filters import gaussian_filter
 import sklearn.linear_model
-import inspect
+import xarray as xr
+from scipy.ndimage.filters import gaussian_filter
+from scipy.signal import lfilter
+
+from . import frequencymaths
 
 EvokedFrequency = collections.namedtuple(
     "EvokedFrequency", ["frequencies", "orders", "power", "snr", "tfr"]
