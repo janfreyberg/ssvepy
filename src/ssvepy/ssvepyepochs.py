@@ -714,32 +714,20 @@ class Ssvep(mne.Epochs):
         """
         # Find out over which range(s) to collapse:
         fmins, fmaxs = self._get_flims(flims)
-
-        # Get the actual data, collapse across frequency band
-        if len(fmins.flatten()) > 1:
+        if collapse_epochs:
             topodata = [
-                self.psd[..., (self.freqs > fmin) & (self.freqs < fmax)].mean(
-                    axis=-1
-                )
-                for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())
+                self.psd.sel(frequency=slice(fmin, fmax))
+                .mean("frequency")
+                .mean("epoch")
+                .values
+                for fmin, fmax in zip(fmins, fmaxs)
             ]
             annot = [
-                (str(fmin) + " - " + str(fmax) + " Hz")
+                f"{fmin:.2f} - {fmax:.2f} Hz"
                 for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())
             ]
-        else:
-            topodata = self.psd[
-                ..., (self.freqs > fmins) & (self.freqs < fmaxs)
-            ].mean(axis=-1)
-            # annotation
-            annot = str(fmins[0]) + " - " + str(fmaxs[0]) + " Hz"
-        # also collapse epochs
-        if collapse_epochs:
-            topodata = topodata.mean(axis=0)
-        # Call the actual plotting function
-        self._plot_topo(topodata, annot, **kwargs)
-        plt.suptitle("Power")
-        plt.show()
+
+        return self._plot_topo(topodata, annot, **kwargs)
 
     def topoplot_snr(
         self, collapse_epochs=True, flims="stimulation", **kwargs
@@ -761,45 +749,20 @@ class Ssvep(mne.Epochs):
 
         # Find out over which range(s) to collapse:
         fmins, fmaxs = self._get_flims(flims)
-
-        if len(fmins.flatten()) > 1:
+        if collapse_epochs:
             topodata = [
-                np.stack(
-                    [
-                        self._get_snr(freq)
-                        for freq in self.freqs
-                        if freq > fmin and freq < fmax
-                    ],
-                    axis=-1,
-                ).mean(-1)
-                for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())
+                self.snr.sel(frequency=slice(fmin, fmax))
+                .mean("frequency")
+                .mean("epoch")
+                .values
+                for fmin, fmax in zip(fmins, fmaxs)
             ]
             annot = [
-                (str(fmin) + " - " + str(fmax) + " Hz")
+                f"{fmin:.2f} - {fmax:.2f} Hz"
                 for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())
             ]
-            if collapse_epochs:
-                topodata = [t.mean(axis=0) for t in topodata]
-        else:
-            topodata = np.stack(
-                [
-                    self._get_snr(freq)
-                    for freq in self.freqs
-                    if freq > fmins and freq < fmaxs
-                ],
-                axis=-1,
-            ).mean(-1)
-            # annotation
-            annot = str(fmins[0]) + " - " + str(fmaxs[0]) + " Hz"
-            if collapse_epochs:
-                topodata = topodata.mean(axis=0)
 
-        self._plot_topo(topodata, annot, **kwargs)
-        plt.gca()
-        plt.suptitle("SNR", size="xx-large")
-        # plt.figtext(0.05, 0.05, annot,
-        #             size='small')
-        plt.show()
+        return self._plot_topo(topodata, annot, **kwargs)
 
     def _get_flims(self, flims):
         """
