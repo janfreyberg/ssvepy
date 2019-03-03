@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ssvepy"
-version = "0.2"
+version = "0.3"
 description = "A package that provides classes for SSVEP analysis."
 authors = ["Jan Freyberg <jan.freyberg@gmail.com>"]
 readme = 'README.md'
