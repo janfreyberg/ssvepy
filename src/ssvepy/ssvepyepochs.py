@@ -128,14 +128,14 @@ class Ssvep(mne.Epochs):
         # turn into a labelled array
         self.psd = xr.DataArray(
             self.psd,
-            dims=["epoch", "channels", "frequencies"],
+            dims=["epoch", "channel", "frequency"],
             coords={
                 "epoch": self.events[:, 2],
-                "channels": [
+                "channel": [
                     epochs.ch_names[a]
                     for a in mne.pick_types(epochs.info, meg=True, eeg=True)
                 ],
-                "frequencies": self.freqs,
+                "frequency": self.freqs,
             },
         )
 
