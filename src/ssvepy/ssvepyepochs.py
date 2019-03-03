@@ -598,6 +598,45 @@ class Ssvep(mne.Epochs):
         if fmax is None:
             fmax = np.max(self.freqs)
 
+        if "channel" not in ydata.dims and "epoch" not in ydata.dims:
+            ax = ydata.plot.line(x="frequency", color="blue")
+            return ax
+        elif "channel" in ydata.dims and "epoch" not in ydata.dims:
+            ax = ydata.plot.line(
+                x="frequency", color="blue", alpha=0.1, add_legend=False
+            )
+            ydata.mean("channel").plot.line(
+                x="frequency", color="red", add_legend=False
+            )
+            return ax
+        elif "channel" in ydata.dims and "epoch" in ydata.dims:
+            ax = ydata.plot.line(
+                x="frequency",
+                color="blue",
+                col="epoch",
+                alpha=0.1,
+                add_legend=False,
+                col_wrap=int(ydata.coords["epoch"].size ** 0.5),
+            )
+            # TODO: Also allow plotting of means
+            # ydata.mean("channel").plot.line(
+            #     x="frequency",
+            #     color="red",
+            #     col="epoch",
+            #     add_legend=False,
+            #     col_wrap=int(ydata.coords["epoch"].size ** 0.5),
+            # )
+            return ax
+        elif "channel" not in ydata.dims and "epoch" in ydata.dims:
+            ax = ydata.plot.line(
+                x="frequency",
+                color="blue",
+                add_legend=False,
+                col="epoch",
+                col_wrap=int(ydata.coords["epoch"].size ** 0.5),
+            )
+            return ax
+
         # Make sure frequency data is the first index
         ydata = np.transpose(
             ydata,
