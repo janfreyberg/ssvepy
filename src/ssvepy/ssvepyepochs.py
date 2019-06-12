@@ -17,7 +17,7 @@ from scipy.signal import lfilter
 from . import frequencymaths
 
 EvokedFrequency = collections.namedtuple(
-    "EvokedFrequency", ["frequencies", "orders", "power", "snr", "tfr"]
+    "EvokedFrequency", ["power", "snr", "tfr"]
 )
 
 
@@ -42,9 +42,11 @@ class Ssvep(mne.Epochs):
                 Integers of which order of harmonics to compute. Can be None.
         compute_intermodulation : list | :class:`np:numpy.ndarray`
                 Integers of which order of harmonics to compute. Can be None.
-        psd : :class:`np:numpy.ndarray`
+        psd : :class:`np:numpy.ndarray`, :class:`xr:xarray.DataArray`, str
             If you have already computed the power spectrum with some
-            other method, pass it as a parameter.
+            other method, pass it as a parameter. Otherwise, you can pass
+            either 'multitaper' or 'welch' to indicate what method should be
+            used to calculate the power spectrum.
         freqs : :class:`np:numpy.ndarray`
             If you provide a power spectrum, this has to be the
             frequencies over which it was evaluated.
@@ -60,8 +62,6 @@ class Ssvep(mne.Epochs):
             Currently, only one method is implemented ('rls')
         tfr_time_window : float
             The window width for the TFR method.
-
-    **Attributes**
 
     Attributes
     ----------
@@ -87,42 +87,50 @@ class Ssvep(mne.Epochs):
         epochs: mne.Epochs,
         stimulation_frequencies: Sequence,
         noisebandwidth: float = 1.0,
-        compute_harmonics: Optional[Sequence] = range(2, 5),
-        compute_subharmonics: Optional[Sequence] = range(2, 5),
-        compute_intermodulation: Optional[Sequence] = range(2, 5),
-        psd: Optional[Union[np.ndarray, xr.DataArray]] = None,
+        compute_harmonics: Optional[Sequence[int]] = range(2, 5),
+        compute_subharmonics: Optional[Sequence[int]] = range(2, 5),
+        compute_intermodulation: Optional[Sequence[int]] = range(2, 5),
+        psd: Union[np.ndarray, xr.DataArray, str] = "multitaper",
         freqs: np.ndarray = None,
         fmin: float = 0.1,
         fmax: float = 50,
-        tmin: float = None,
-        tmax: float = None,
+        tmin: Optional[float] = None,
+        tmax: Optional[float] = None,
         compute_tfr: bool = False,
         tfr_method: str = "rls",
         tfr_time_window: float = 0.9,
     ):
 
         self.info = deepcopy(epochs.info)
-        self.events = epochs.events
+        self.events = deepcopy(epochs.events)
 
         self.noisebandwidth = noisebandwidth
         self.psd = psd
-        self.freqs = freqs
+        self.frequencies = freqs
         self.fmin = fmin
         self.fmax = fmax
 
-        # Check if the right input was provided:
-        # TODO: Change into a _check_input method
-        if self.psd is not None and self.freqs is None:
+        if not isinstance(self.psd, str) and self.frequencies is None:
             raise ValueError(
                 "If you provide psd data, you also need to provide"
                 " the frequencies at which it was evaluated"
             )
 
         # If no power-spectrum was provided, we need to work it out
-        if self.psd is None:
-            # Use MNE here. TODO: offer different methods of FFT eval
-            self.psd, self.freqs = mne.time_frequency.psd_multitaper(
+        if self.psd == "multitaper":
+            # Use MNE here.
+            self.psd, self.frequencies = mne.time_frequency.psd_multitaper(
                 epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax
+            )
+        elif self.psd == "welch":
+            # Use MNE here.
+            self.psd, self.frequencies = mne.time_frequency.psd_welch(
+                epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax
+            )
+        else:
+            raise NotImplementedError(
+                "psd has to be either 'welch' or 'multitaper' if it is not an "
+                "array, you passed {}".format(self.psd)
             )
 
         # turn into a labelled array
@@ -135,58 +143,65 @@ class Ssvep(mne.Epochs):
                     epochs.ch_names[a]
                     for a in mne.pick_types(epochs.info, meg=True, eeg=True)
                 ],
-                "frequency": self.freqs,
+                "frequency": self.frequencies,
             },
         )
 
-        self.frequency_resolution = self.freqs[1] - self.freqs[0]
+        self.frequency_resolution = self.frequencies[1] - self.frequencies[0]
 
-        self.snr = self._get_snr(self.freqs)
+        self.snr = self._get_snr(self.frequencies)
 
+        if not isinstance(stimulation_frequencies, Sequence):
+            stimulation_frequencies = [stimulation_frequencies]
         stimulation_frequencies = np.array(
             stimulation_frequencies, dtype=float
         )
         # Use a custom named tuple for the frequency-related data
-        self.stimulation = EvokedFrequency(
-            frequencies=stimulation_frequencies,
-            orders=np.ones(stimulation_frequencies.shape, dtype=float),
-            power=self._get_amp(stimulation_frequencies),
-            snr=self._get_snr(stimulation_frequencies),
-            tfr=(
-                self._compute_tfr(
-                    epochs,
-                    stimulation_frequencies,
-                    window_width=tfr_time_window,
-                )
-                if compute_tfr
-                else None
-            ),
-        )
+        # self.stimulation = EvokedFrequency(
+        #     power=self._get_amp(stimulation_frequencies),
+        #     snr=self._get_snr(stimulation_frequencies),
+        #     tfr=
+        # )
+        # self.stimulation = EvokedFrequency(
+        #     frequencies=stimulation_frequencies,
+        #     orders=np.ones(stimulation_frequencies.shape, dtype=float),
+        #     power=self._get_amp(stimulation_frequencies),
+        #     snr=self._get_snr(stimulation_frequencies),
+        #     tfr=(
+        #         self._compute_tfr(
+        #             epochs,
+        #             stimulation_frequencies,
+        #             window_width=tfr_time_window,
+        #         )
+        #         if compute_tfr
+        #         else None
+        #     ),
+        # )
 
-        if compute_harmonics is not None:
-            self.harmonic = self._compute_harmonics(
-                epochs,
-                compute_harmonics,
-                compute_tfr,
-                tfr_time_window,
-                type_="harmonics",
-            )
-        if compute_subharmonics is not None:
-            self.harmonic = self._compute_harmonics(
-                epochs,
-                compute_harmonics,
-                compute_tfr,
-                tfr_time_window,
-                type_="subharmonics",
-            )
-        if compute_intermodulation is not None:
-            self.harmonic = self._compute_harmonics(
-                epochs,
-                compute_harmonics,
-                compute_tfr,
-                tfr_time_window,
-                type_="intermodulation",
-            )
+        # if compute_harmonics is not None:
+        #     self.harmonic = self._compute_harmonics(
+        #         epochs,
+        #         compute_harmonics,
+        #         compute_tfr,
+        #         tfr_time_window,
+        #         type_="harmonics",
+        #     )
+        # if compute_subharmonics is not None:
+        #     self.harmonic = self._compute_harmonics(
+        #         epochs,
+        #         compute_harmonics,
+        #         compute_tfr,
+        #         tfr_time_window,
+        #         type_="subharmonics",
+        #     )
+        # if compute_intermodulation is not None:
+        #     self.harmonic = self._compute_harmonics(
+        #         epochs,
+        #         compute_harmonics,
+        #         compute_tfr,
+        #         tfr_time_window,
+        #         type_="intermodulation",
+        #     )
 
     # Helper functions to get specific frequencies:
     def _get_snr(self, frequencies: np.ndarray):
@@ -195,23 +210,40 @@ class Ssvep(mne.Epochs):
         """
         snr = []
         for frequency in frequencies:
-            signal_slice = slice(
-                (frequency - self.frequency_resolution),
-                (frequency + self.frequency_resolution),
+            min_signal, max_signal = (
+                frequency - self.frequency_resolution,
+                frequency + self.frequency_resolution,
             )
-            stimband = self.psd.coords["frequency"].loc[signal_slice]
-            noise_slice = slice(
+            min_noise, max_noise = (
                 frequency - self.noisebandwidth,
                 frequency + self.noisebandwidth,
             )
-            noiseband = (
-                self.psd.coords["frequency"]
-                .loc[noise_slice]
-                .drop(stimband, dim="frequency")
+            is_signal = (self.psd.coords["frequency"].data < max_signal) & (
+                self.psd.coords["frequency"].data > min_signal
             )
+            is_noise = (
+                (self.psd.coords["frequency"].data < max_noise)
+                & (self.psd.coords["frequency"].data > min_noise)
+                & ~is_signal
+            )
+
+            # signal_slice = slice(
+            #     (frequency - self.frequency_resolution),
+            #     (frequency + self.frequency_resolution),
+            # )
+            # stimband = self.psd.coords["frequency"].loc[signal_slice]
+            # noise_slice = slice(
+            #     frequency - self.noisebandwidth,
+            #     frequency + self.noisebandwidth,
+            # )
+            # noiseband = (
+            #     self.psd.coords["frequency"]
+            #     .loc[noise_slice]
+            #     .drop(stimband, dim="frequency")
+            # )
             snr.append(
-                self.psd.loc[:, :, stimband].mean("frequency")
-                / self.psd.loc[:, :, noiseband].mean("frequency")
+                self.psd[:, :, is_signal].mean("frequency")
+                / self.psd[:, :, is_noise].mean("frequency")
             )
 
         return (
@@ -220,7 +252,7 @@ class Ssvep(mne.Epochs):
             .transpose("epoch", "channel", "frequency")
         )
 
-    def _get_amp(self, freqs):
+    def _get_amp(self, freqs: np.ndarray):
         """
         Helper function to get the freq-smoothed amplitude of a frequency
         """
@@ -233,7 +265,7 @@ class Ssvep(mne.Epochs):
         tfr_method: str = "rls",
         window_width: float = 1.2,
         filter_lambda: float = 1.0,
-    ):
+    ) -> xr.DataArray:
         """
         Work out the time-frequency composition of different frequencies.
         """
@@ -298,7 +330,7 @@ class Ssvep(mne.Epochs):
         type_: str = "harmonics",
     ) -> EvokedFrequency:
         """
-        Calculate the harminc frequency and return an EvokedFrequency named
+        Calculate the harmonic frequency and return an EvokedFrequency named
         tuple.
         """
         if type_ == "harmonics":
@@ -354,8 +386,7 @@ class Ssvep(mne.Epochs):
             orders=orders,
         )
 
-    # Machine learning routines:
-
+    # Machine learning methods:
     def predict_timepoints(
         self,
         labels,
@@ -442,13 +473,6 @@ class Ssvep(mne.Epochs):
                 ),
                 axis=-1,
             )
-        # trainx = np.concatenate(
-        #     [self.__getattribute__(freqtype).snr.reshape((len(self), -1))
-        #      for freqtype in
-        #      ('stimulation', 'harmonic', 'subharmonic', 'intermodulation')
-        #      if self.__getattribute__(freqtype).snr is not None],
-        #     axis=-1
-        # )
 
         # if the training trials
         if trainepochs is not None:
@@ -494,7 +518,7 @@ class Ssvep(mne.Epochs):
                 Whether to average over the epochs or not.
             collapse_electrodes : bool
                 Whether to average over electrodes or not.
-            figsize : tup
+            figsize : tuple
                 Matplotlib figure size.
         """
 
@@ -539,19 +563,25 @@ class Ssvep(mne.Epochs):
         plt.show()
 
     def plot_psd(
-        self, collapse_epochs=True, collapse_electrodes=False, **kwargs
+        self,
+        log_scale=True,
+        collapse_epochs=True,
+        collapse_electrodes=False,
+        **kwargs,
     ):
         """
         Plot the power-spectrum that has been calculated for this data.
 
         Parameters
         ----------
-            collapse_epochs : bool
-                Whether you want to plot the average of all epochs (default),
-                or each power-spectrum individually.
-            collapse_electrodes : bool
-                Whether you want to plot each electrode individually
-                (default), or only the average of all electrodes.
+        log_scale : bool
+            Yes or no
+        collapse_epochs : bool
+            Whether you want to plot the average of all epochs (default),
+            or each power-spectrum individually.
+        collapse_electrodes : bool
+            Whether you want to plot each electrode individually
+            (default), or only the average of all electrodes.
 
         """
         ydata = self.psd
@@ -559,7 +589,7 @@ class Ssvep(mne.Epochs):
             ydata = ydata.mean("channel")
         if collapse_epochs:
             ydata = ydata.mean("epoch")
-        self._plot_spectrum(ydata, **kwargs)
+        return self._plot_spectrum(ydata, **kwargs)
 
     def plot_snr(
         self, collapse_epochs=True, collapse_electrodes=False, **kwargs
@@ -584,116 +614,66 @@ class Ssvep(mne.Epochs):
             ydata = ydata.mean("channel")
         if collapse_epochs:
             ydata = ydata.mean("epoch")
-        self._plot_spectrum(ydata, **kwargs)
+        return self._plot_spectrum(ydata, **kwargs)
 
     def _plot_spectrum(
-        self, ydata, figsize=(15, 7), show=True, fmin=None, fmax=None
+        self,
+        ydata,
+        figsize=(15, 7),
+        log_scale=True,
+        fmin=None,
+        fmax=None,
+        **kwargs,
     ):
         """
         Helper function to plot different spectra
         """
 
+        scale = "log" if log_scale else None
+
         if fmin is None:
-            fmin = np.min(self.freqs)
+            fmin = np.min(self.frequencies)
         if fmax is None:
-            fmax = np.max(self.freqs)
+            fmax = np.max(self.frequencies)
 
         if "channel" not in ydata.dims and "epoch" not in ydata.dims:
-            ax = ydata.plot.line(x="frequency", color="blue")
-            return ax
+            facetgrid = ydata.plot.line(x="frequency", color="blue")
         elif "channel" in ydata.dims and "epoch" not in ydata.dims:
-            ax = ydata.plot.line(
+            facetgrid = ydata.plot.line(
                 x="frequency", color="blue", alpha=0.1, add_legend=False
             )
             ydata.mean("channel").plot.line(
                 x="frequency", color="red", add_legend=False
             )
-            return ax
         elif "channel" in ydata.dims and "epoch" in ydata.dims:
-            ax = ydata.plot.line(
+            # plot each channel:
+            facetgrid = ydata.plot.line(
                 x="frequency",
                 color="blue",
+                hue="channel",
                 col="epoch",
                 alpha=0.1,
+                yscale=scale,
                 add_legend=False,
                 col_wrap=int(ydata.coords["epoch"].size ** 0.5),
             )
-            # TODO: Also allow plotting of means
-            # ydata.mean("channel").plot.line(
-            #     x="frequency",
-            #     color="red",
-            #     col="epoch",
-            #     add_legend=False,
-            #     col_wrap=int(ydata.coords["epoch"].size ** 0.5),
-            # )
-            return ax
+            # plot the channel mean, too:
+            for ax, name_dict in zip(
+                facetgrid.axes.flatten(), facetgrid.name_dicts.flatten()
+            ):
+                ydata.mean("channel").loc[name_dict].plot.line(
+                    x="frequency", color="red", add_legend=False, ax=ax
+                )
         elif "channel" not in ydata.dims and "epoch" in ydata.dims:
-            ax = ydata.plot.line(
+            facetgrid = ydata.plot.line(
                 x="frequency",
                 color="blue",
                 add_legend=False,
                 col="epoch",
                 col_wrap=int(ydata.coords["epoch"].size ** 0.5),
             )
-            return ax
 
-        # Make sure frequency data is the first index
-        ydata = np.transpose(
-            ydata,
-            axes=(
-                [ydata.shape.index(self.freqs.size)]
-                + [
-                    dim
-                    for dim, _ in enumerate(ydata.shape)
-                    if dim != ydata.shape.index(self.freqs.size)
-                ]
-            ),
-        )
-        # apply the frequency limits
-        ydata = ydata[(self.freqs > fmin) & (self.freqs < fmax), ...]
-        xdata = self.freqs[(self.freqs > fmin) & (self.freqs < fmax)]
-
-        # Start figure
-        plt.figure(figsize=figsize)
-        xmarks = np.concatenate(
-            [
-                a.flatten()
-                for a in [
-                    self.stimulation.frequencies,
-                    self.harmonic.frequencies,
-                    self.subharmonic.frequencies,
-                    self.intermodulation.frequencies,
-                ]
-                if np.any(a)
-            ]
-        ).tolist()
-        # If we didn't collapse over epochs, split the data
-        if ydata.ndim <= 2:
-            plt.plot(xdata, ydata, color="blue", alpha=0.3)
-            if ydata.ndim > 1:
-                plt.plot(xdata, ydata.mean(axis=1), color="red")
-            for xval in xmarks:
-                plt.axvline(xval, linestyle="--", color="gray")
-            plt.xticks(xmarks)
-            plt.title("Average spectrum of all epochs")
-        elif ydata.ndim > 2:
-            ydatas = [ydata[:, idx, :] for idx in range(ydata.shape[1])]
-            for idx, ydata in enumerate(ydatas):
-                plt.subplot(
-                    np.ceil(np.sqrt(len(ydatas))),
-                    np.ceil(len(ydatas) / np.ceil(np.sqrt(len(ydatas)))),
-                    idx + 1,
-                )
-                plt.plot(xdata, ydata, color="blue", alpha=0.3)
-                if ydata.ndim > 1:
-                    plt.plot(xdata, ydata.mean(axis=1), color="red")
-                for xval in xmarks:
-                    plt.axvline(xval, linestyle="--", color="gray")
-                plt.xticks(xmarks)
-                plt.title("Spectrum of epoch {n}".format(n=idx + 1))
-
-        if show:
-            plt.show()
+        return facetgrid
 
     def topoplot_psd(
         self, collapse_epochs=True, flims="stimulation", **kwargs
@@ -871,7 +851,7 @@ class Ssvep(mne.Epochs):
         f = h5py.File(filename, "w")  # open a file
         # First the necessary data:
         f.create_dataset("psd", data=self.psd)
-        f.create_dataset("freqs", data=self.freqs)
+        f.create_dataset("freqs", data=self.frequencies)
         # whack in the info structure:
         info = f.create_group("info")
         info.attrs["infostring"] = np.void(pickle.dumps(self.info))
@@ -905,9 +885,9 @@ class Ssvep(mne.Epochs):
             "{fmax} Hz).\n".format(
                 stimfreq=self.stimulation.frequencies,
                 nepoch=self.psd.shape[0],
-                nfreqs=self.freqs.size,
-                fmin=self.freqs.min(),
-                fmax=self.freqs.max(),
+                nfreqs=self.frequencies.size,
+                fmin=self.frequencies.min(),
+                fmax=self.frequencies.max(),
             )
         )
         return outstring

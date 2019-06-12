@@ -1,6 +1,4 @@
 import mne
-import ssvepy
-import numpy as np
 import os.path
 
 length = 5
