@@ -4,6 +4,8 @@ import pickle
 from copy import deepcopy
 from typing import Sequence, Optional, Union
 
+from dataclasses import dataclass
+
 import h5py
 import matplotlib.pyplot as plt
 import mne
@@ -14,11 +16,17 @@ import xarray as xr
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import lfilter
 
+# import fooof
+
 from . import frequencymaths
 
-EvokedFrequency = collections.namedtuple(
-    "EvokedFrequency", ["power", "snr", "tfr"]
-)
+
+@dataclass
+class EvokedFrequency:
+
+    psd: xr.DataArray
+    snr: xr.DataArray
+    tfr: Optional[xr.DataArray] = None
 
 
 class Ssvep(mne.Epochs):
@@ -99,6 +107,7 @@ class Ssvep(mne.Epochs):
         compute_tfr: bool = False,
         tfr_method: str = "rls",
         tfr_time_window: float = 0.9,
+        compute_fooof_peaks: bool = True,
     ):
 
         self.info = deepcopy(epochs.info)
@@ -130,7 +139,7 @@ class Ssvep(mne.Epochs):
         else:
             raise NotImplementedError(
                 "psd has to be either 'welch' or 'multitaper' if it is not an "
-                "array, you passed {}".format(self.psd)
+                "array. You passed {}".format(self.psd)
             )
 
         # turn into a labelled array
@@ -153,55 +162,19 @@ class Ssvep(mne.Epochs):
 
         if not isinstance(stimulation_frequencies, Sequence):
             stimulation_frequencies = [stimulation_frequencies]
-        stimulation_frequencies = np.array(
+
+        self.stimulation_frequencies = np.array(
             stimulation_frequencies, dtype=float
         )
-        # Use a custom named tuple for the frequency-related data
-        # self.stimulation = EvokedFrequency(
-        #     power=self._get_amp(stimulation_frequencies),
-        #     snr=self._get_snr(stimulation_frequencies),
-        #     tfr=
-        # )
-        # self.stimulation = EvokedFrequency(
-        #     frequencies=stimulation_frequencies,
-        #     orders=np.ones(stimulation_frequencies.shape, dtype=float),
-        #     power=self._get_amp(stimulation_frequencies),
-        #     snr=self._get_snr(stimulation_frequencies),
-        #     tfr=(
-        #         self._compute_tfr(
-        #             epochs,
-        #             stimulation_frequencies,
-        #             window_width=tfr_time_window,
-        #         )
-        #         if compute_tfr
-        #         else None
-        #     ),
-        # )
 
-        # if compute_harmonics is not None:
-        #     self.harmonic = self._compute_harmonics(
-        #         epochs,
-        #         compute_harmonics,
-        #         compute_tfr,
-        #         tfr_time_window,
-        #         type_="harmonics",
-        #     )
-        # if compute_subharmonics is not None:
-        #     self.harmonic = self._compute_harmonics(
-        #         epochs,
-        #         compute_harmonics,
-        #         compute_tfr,
-        #         tfr_time_window,
-        #         type_="subharmonics",
-        #     )
-        # if compute_intermodulation is not None:
-        #     self.harmonic = self._compute_harmonics(
-        #         epochs,
-        #         compute_harmonics,
-        #         compute_tfr,
-        #         tfr_time_window,
-        #         type_="intermodulation",
-        #     )
+        self.stimulation = EvokedFrequency(
+            psd=self.psd.interp(
+                frequency=self.stimulation_frequencies, method="cubic"
+            ),
+            snr=self.snr.interp(
+                frequency=self.stimulation_frequencies, method="cubic"
+            ),
+        )
 
     # Helper functions to get specific frequencies:
     def _get_snr(self, frequencies: np.ndarray):
@@ -209,54 +182,49 @@ class Ssvep(mne.Epochs):
         Helper function to work out the SNR of a given frequency
         """
         snr = []
+        f = self.psd.coords["frequency"].data
+        stimulation_bands = np.zeros_like(f, dtype=bool)
+        # for frequency in frequencies:
+        #     stimulation_bands = stimulation_bands | (
+        #         (f <= (frequency + self.frequency_resolution))
+        #         & (f >= (frequency - self.frequency_resolution))
+        #     )
+        #     print(stimulation_bands)
         for frequency in frequencies:
-            min_signal, max_signal = (
-                frequency - self.frequency_resolution,
-                frequency + self.frequency_resolution,
-            )
-            min_noise, max_noise = (
-                frequency - self.noisebandwidth,
-                frequency + self.noisebandwidth,
-            )
-            is_signal = (self.psd.coords["frequency"].data < max_signal) & (
-                self.psd.coords["frequency"].data > min_signal
-            )
-            is_noise = (
-                (self.psd.coords["frequency"].data < max_noise)
-                & (self.psd.coords["frequency"].data > min_noise)
-                & ~is_signal
+            noise = (
+                # within the noise band:
+                (
+                    (f <= (frequency + self.noisebandwidth))
+                    & (f >= (frequency - self.noisebandwidth))
+                )
+                # not within the stimulation band:
+                & ~stimulation_bands
             )
 
-            # signal_slice = slice(
-            #     (frequency - self.frequency_resolution),
-            #     (frequency + self.frequency_resolution),
-            # )
-            # stimband = self.psd.coords["frequency"].loc[signal_slice]
-            # noise_slice = slice(
-            #     frequency - self.noisebandwidth,
-            #     frequency + self.noisebandwidth,
-            # )
-            # noiseband = (
-            #     self.psd.coords["frequency"]
-            #     .loc[noise_slice]
-            #     .drop(stimband, dim="frequency")
-            # )
             snr.append(
-                self.psd[:, :, is_signal].mean("frequency")
-                / self.psd[:, :, is_noise].mean("frequency")
+                self.psd.mean("epoch").interp(
+                    frequency=frequency, method="cubic"
+                )
+                / self.psd[:, :, noise].mean("epoch").mean("frequency")
             )
 
         return (
             xr.concat(snr, dim=xr.DataArray(frequencies, name="frequency"))
             .rename({"dim_0": "frequency"})
-            .transpose("epoch", "channel", "frequency")
+            .transpose("channel", "frequency")
         )
 
     def _get_amp(self, freqs: np.ndarray):
         """
         Helper function to get the freq-smoothed amplitude of a frequency
         """
-        return self.psd.sel(frequency=freqs, method="nearest")
+        return self.psd.interp(frequency=freqs, method="cubic")
+
+    # def _fit_fooof(self):
+    #     self.fooof_peaks = xr.Dataset()
+    #     self._fooof = fooof.FOOOF(background_mode="fixed")
+    #     for channel in self.psd.coords["channel"]:
+    #         self.fooof.fit(self.psd.mean("epochs"))
 
     def _compute_tfr(
         self,
@@ -709,9 +677,7 @@ class Ssvep(mne.Epochs):
 
         return self._plot_topo(topodata, annot, **kwargs)
 
-    def topoplot_snr(
-        self, collapse_epochs=True, flims="stimulation", **kwargs
-    ):
+    def topoplot_snr(self, collapse_epochs=True, frequencies=None, **kwargs):
         """
         Plot the signal-to-noise-ratio-spectrum across the scalp.
 
@@ -719,28 +685,25 @@ class Ssvep(mne.Epochs):
             collapse_epochs : bool
                 Whether you want to plot the average of all epochs (default),
                 or each power-spectrum individually.
-            flims : list | str
+            frequencies : list of ints
                 Which frequency bands you want to plot. By default, the
                 stimulation frequencies will be plotted. Can be limits (eg.
                 [6, 8]) or a string referring to an evoked frequency (eg.
                 'stimulation', 'harmonic')
-
         """
 
         # Find out over which range(s) to collapse:
-        fmins, fmaxs = self._get_flims(flims)
-        if collapse_epochs:
-            topodata = [
-                self.snr.sel(frequency=slice(fmin, fmax))
-                .mean("frequency")
-                .mean("epoch")
-                .values
-                for fmin, fmax in zip(fmins, fmaxs)
-            ]
-            annot = [
-                f"{fmin:.2f} - {fmax:.2f} Hz"
-                for fmin, fmax in zip(fmins.flatten(), fmaxs.flatten())
-            ]
+        # fmins, fmaxs = self._get_flims(flims)
+        if frequencies is None:
+            frequencies = self.stimulation_frequencies
+
+        topodata = [
+            self.snr.interp(frequency=freq, method="linear")
+            .mean("epoch")
+            .values
+            for freq in frequencies
+        ]
+        annot = [f"{freq} Hz" for freq in frequencies]
 
         return self._plot_topo(topodata, annot, **kwargs)
 
