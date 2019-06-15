@@ -11,6 +11,13 @@ mne = "^0.17.1"
 numpy = "^1.16"
 matplotlib = "^3.0"
 scikit-learn = "^0.20.3"
+h5py = "^2.9"
+xarray = "^0.12.1"
+
+
+[tool.poetry.dev-dependencies]
+rope = "^0.14.0"
+jupyterlab = "^0.35.4"
 
 [tool.black]
 line-length = 79
