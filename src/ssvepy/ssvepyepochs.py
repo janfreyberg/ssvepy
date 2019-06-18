@@ -16,7 +16,7 @@ import xarray as xr
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import lfilter
 
-# import fooof
+import fooof
 
 from . import frequencymaths
 
@@ -107,7 +107,7 @@ class Ssvep(mne.Epochs):
         compute_tfr: bool = False,
         tfr_method: str = "rls",
         tfr_time_window: float = 0.9,
-        compute_fooof_peaks: bool = True,
+        subtract_fooof_baseline: bool = True,
     ):
 
         self.info = deepcopy(epochs.info)
@@ -118,6 +118,13 @@ class Ssvep(mne.Epochs):
         self.frequencies = freqs
         self.fmin = fmin
         self.fmax = fmax
+
+        if not isinstance(stimulation_frequencies, Sequence):
+            stimulation_frequencies = [stimulation_frequencies]
+
+        self.stimulation_frequencies = np.array(
+            stimulation_frequencies, dtype=float
+        )
 
         if not isinstance(self.psd, str) and self.frequencies is None:
             raise ValueError(
@@ -156,16 +163,18 @@ class Ssvep(mne.Epochs):
             },
         )
 
+        # if subtract_fooof_baseline:
+        #     for channel, data in self.psd.mean("epoch").groupby("channel"):
+        #         fooof_object = fooof.FOOOF()
+        #         fooof_object.fit(
+        #             data.coords["frequency"].data, data.data.squeeze()
+        #         )
+        #         self.psd.loc[:, channel, :] -= fooof_object._bg_fit
+        #         fooof_object
+
         self.frequency_resolution = self.frequencies[1] - self.frequencies[0]
 
         self.snr = self._get_snr(self.frequencies)
-
-        if not isinstance(stimulation_frequencies, Sequence):
-            stimulation_frequencies = [stimulation_frequencies]
-
-        self.stimulation_frequencies = np.array(
-            stimulation_frequencies, dtype=float
-        )
 
         self.stimulation = EvokedFrequency(
             psd=self.psd.interp(
@@ -184,12 +193,12 @@ class Ssvep(mne.Epochs):
         snr = []
         f = self.psd.coords["frequency"].data
         stimulation_bands = np.zeros_like(f, dtype=bool)
-        # for frequency in frequencies:
-        #     stimulation_bands = stimulation_bands | (
-        #         (f <= (frequency + self.frequency_resolution))
-        #         & (f >= (frequency - self.frequency_resolution))
-        #     )
-        #     print(stimulation_bands)
+        for frequency in self.stimulation_frequencies:
+            for harmonic in range(1, 6):
+                stimulation_bands = stimulation_bands | (
+                    (f <= (frequency * harmonic + self.frequency_resolution))
+                    & (f >= (frequency * harmonic - self.frequency_resolution))
+                )
         for frequency in frequencies:
             noise = (
                 # within the noise band:
@@ -202,16 +211,18 @@ class Ssvep(mne.Epochs):
             )
 
             snr.append(
-                self.psd.mean("epoch").interp(
-                    frequency=frequency, method="cubic"
-                )
-                / self.psd[:, :, noise].mean("epoch").mean("frequency")
+                self.psd.interp(frequency=frequency, method="cubic")
+                / self.psd[:, :, noise].mean("frequency")
             )
 
-        return (
-            xr.concat(snr, dim=xr.DataArray(frequencies, name="frequency"))
-            .rename({"dim_0": "frequency"})
-            .transpose("channel", "frequency")
+        extra_dims = [
+            name
+            for name in self.psd.coords
+            if name not in ("channel", "frequency")
+        ]
+
+        return xr.concat(snr, dim="frequency").transpose(
+            *extra_dims, "channel", "frequency"
         )
 
     def _get_amp(self, freqs: np.ndarray):
