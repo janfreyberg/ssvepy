@@ -16,8 +16,6 @@ import xarray as xr
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import lfilter
 
-import fooof
-
 from . import frequencymaths
 
 
@@ -114,8 +112,8 @@ class Ssvep(mne.Epochs):
         self.events = deepcopy(epochs.events)
 
         self.noisebandwidth = noisebandwidth
-        self.psd = psd
-        self.frequencies = freqs
+        psd = psd
+        frequencies = freqs
         self.fmin = fmin
         self.fmax = fmax
 
@@ -126,116 +124,61 @@ class Ssvep(mne.Epochs):
             stimulation_frequencies, dtype=float
         )
 
-        if not isinstance(self.psd, str) and self.frequencies is None:
+        if not isinstance(psd, str) and frequencies is None:
             raise ValueError(
-                "If you provide psd data, you also need to provide"
-                " the frequencies at which it was evaluated"
+                "If you provide precomputed psd data, you also need to provide"
+                " the frequencies at which it was evaluated. You passed "
+                f"{repr(self.frequencies)}."
             )
 
         # If no power-spectrum was provided, we need to work it out
-        if self.psd == "multitaper":
-            # Use MNE here.
-            self.psd, self.frequencies = mne.time_frequency.psd_multitaper(
-                epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax
-            )
-        elif self.psd == "welch":
-            # Use MNE here.
-            self.psd, self.frequencies = mne.time_frequency.psd_welch(
-                epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax
-            )
-        else:
-            raise NotImplementedError(
-                "psd has to be either 'welch' or 'multitaper' if it is not an "
-                "array. You passed {}".format(self.psd)
+        if isinstance(psd, str):
+            psd, frequencies = self._compute_psd(
+                epochs, psd, fmin=fmin, fmax=fmax, tmim=tmin, tmax=tmax
             )
 
-        # turn into a labelled array
-        self.psd = xr.DataArray(
-            self.psd,
-            dims=["epoch", "channel", "frequency"],
-            coords={
-                "epoch": self.events[:, 2],
-                "channel": [
-                    epochs.ch_names[a]
-                    for a in mne.pick_types(epochs.info, meg=True, eeg=True)
-                ],
-                "frequency": self.frequencies,
-            },
-        )
-
-        # if subtract_fooof_baseline:
-        #     for channel, data in self.psd.mean("epoch").groupby("channel"):
-        #         fooof_object = fooof.FOOOF()
-        #         fooof_object.fit(
-        #             data.coords["frequency"].data, data.data.squeeze()
-        #         )
-        #         self.psd.loc[:, channel, :] -= fooof_object._bg_fit
-        #         fooof_object
-
-        self.frequency_resolution = self.frequencies[1] - self.frequencies[0]
-
-        self.snr = self._get_snr(self.frequencies)
-
-        self.stimulation = EvokedFrequency(
-            psd=self.psd.interp(
-                frequency=self.stimulation_frequencies, method="cubic"
-            ),
-            snr=self.snr.interp(
-                frequency=self.stimulation_frequencies, method="cubic"
-            ),
-        )
-
-    # Helper functions to get specific frequencies:
-    def _get_snr(self, frequencies: np.ndarray):
-        """
-        Helper function to work out the SNR of a given frequency
-        """
-        snr = []
-        f = self.psd.coords["frequency"].data
-        stimulation_bands = np.zeros_like(f, dtype=bool)
-        for frequency in self.stimulation_frequencies:
-            for harmonic in range(1, 6):
-                stimulation_bands = stimulation_bands | (
-                    (f <= (frequency * harmonic + self.frequency_resolution))
-                    & (f >= (frequency * harmonic - self.frequency_resolution))
-                )
-        for frequency in frequencies:
-            noise = (
-                # within the noise band:
-                (
-                    (f <= (frequency + self.noisebandwidth))
-                    & (f >= (frequency - self.noisebandwidth))
-                )
-                # not within the stimulation band:
-                & ~stimulation_bands
-            )
-
-            snr.append(
-                self.psd.interp(frequency=frequency, method="cubic")
-                / self.psd[:, :, noise].mean("frequency")
-            )
-
-        extra_dims = [
-            name
-            for name in self.psd.coords
-            if name not in ("channel", "frequency")
+        self.data = xr.Dataset()
+        self.data.coords["epoch"] = self.events[:, 2]
+        self.data.coords["channel"] = [
+            epochs.ch_names[a]
+            for a in mne.pick_types(epochs.info, meg=True, eeg=True)
         ]
+        self.data.coords["frequency"] = frequencies
+        self.data["psd"] = (("epoch", "channel", "frequency"), psd)
 
-        return xr.concat(snr, dim="frequency").transpose(
-            *extra_dims, "channel", "frequency"
+        self.data["snr"] = (
+            ("epoch", "channel", "frequency"),
+            _get_snr(
+                self.data["psd"],
+                self.stimulation_frequencies,
+                self.noisebandwidth,
+            ),
         )
 
     def _get_amp(self, freqs: np.ndarray):
         """
         Helper function to get the freq-smoothed amplitude of a frequency
         """
-        return self.psd.interp(frequency=freqs, method="cubic")
+        return self.data["psd"].interp(frequency=freqs, method="cubic")
 
-    # def _fit_fooof(self):
-    #     self.fooof_peaks = xr.Dataset()
-    #     self._fooof = fooof.FOOOF(background_mode="fixed")
-    #     for channel in self.psd.coords["channel"]:
-    #         self.fooof.fit(self.psd.mean("epochs"))
+    def _compute_psd(self, epochs, method, fmin, fmax, tmin, tmax):
+        """Get the PSD spectrum."""
+        if method == "multitaper":
+            # Use MNE here.
+            psd, frequencies = mne.time_frequency.psd_multitaper(
+                epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax
+            )
+        elif method == "welch":
+            # Use MNE here.
+            psd, frequencies = mne.time_frequency.psd_welch(
+                epochs, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax
+            )
+        else:
+            raise NotImplementedError(
+                f"psd has to be either 'welch' or 'multitaper' if it is not "
+                f"an array. You passed {repr(method)}"
+            )
+        return psd, frequencies
 
     def _compute_tfr(
         self,
@@ -866,6 +809,13 @@ class Ssvep(mne.Epochs):
         )
         return outstring
 
+    @property
+    def frequency_resolution(self) -> float:
+        return (
+            self.data.coords["frequency"].data[1]
+            - self.data.coords["frequency"].data[0]
+        )
+
     def __len__(self):
         return self.psd.shape[0]
 
@@ -922,3 +872,48 @@ def load_ssvep(filename):
     f.close()
     # and return the loaded data:
     return ssvep
+
+
+def _get_snr(
+    data: xr.DataArray, stimulation_frequencies=(), noisebandwidth: float = 2
+):
+    """
+    Helper function to work out the SNR of a given frequency
+    """
+    snr = []
+    frequencies = data.coords["frequency"].data
+    frequency_resolution = np.diff(frequencies).mean()
+    stimulation_bands = np.zeros_like(frequencies, dtype=bool)
+    for frequency in stimulation_frequencies:
+        for harmonic in range(1, 6):
+            stimulation_bands = stimulation_bands | (
+                (frequencies <= (frequency * harmonic + frequency_resolution))
+                & (
+                    frequencies
+                    >= (frequency * harmonic - frequency_resolution)
+                )
+            )
+
+    for frequency in frequencies:
+        noise = (
+            # within the noise band:
+            (
+                (frequencies <= (frequency + noisebandwidth))
+                & (frequencies >= (frequency - noisebandwidth))
+            )
+            # not within the stimulation band:
+            & ~stimulation_bands
+        )
+
+        snr.append(
+            data.interp(frequency=frequency, method="cubic")
+            / data[:, :, noise].mean("frequency")
+        )
+
+    extra_dims = [
+        name for name in data.coords if name not in ("channel", "frequency")
+    ]
+
+    return xr.concat(snr, dim="frequency").transpose(
+        *extra_dims, "channel", "frequency"
+    )
